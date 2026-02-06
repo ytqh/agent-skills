@@ -1,0 +1,260 @@
+{
+  "version": 3,
+  "skills": {
+    "brainstorming": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/brainstorming/SKILL.md",
+      "skillFolderHash": "761c2f359474328f40d73db9cb4cc1f5721917e5",
+      "installedAt": "2026-01-26T07:36:15.332Z",
+      "updatedAt": "2026-01-31T05:19:14.639Z"
+    },
+    "context7": {
+      "source": "intellectronica/agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/intellectronica/agent-skills.git",
+      "skillPath": "skills/context7/SKILL.md",
+      "skillFolderHash": "c7ab574e006997d98e8a2d8fb7a1db0d2477b180",
+      "installedAt": "2026-01-26T09:57:56.102Z",
+      "updatedAt": "2026-01-26T09:57:56.102Z"
+    },
+    "exa-search": {
+      "source": "benedictking/exa-search",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/benedictking/exa-search.git",
+      "skillPath": ".claude/skills/exa-search/SKILL.md",
+      "skillFolderHash": "af0cccbc91a17aae36c67e1808df6e9539661d09",
+      "installedAt": "2026-01-26T09:59:25.899Z",
+      "updatedAt": "2026-01-26T09:59:25.899Z"
+    },
+    "sqlalchemy-postgres": {
+      "source": "cfircoo/claude-code-toolkit",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/cfircoo/claude-code-toolkit.git",
+      "skillPath": "skills/sqlalchemy-postgres/SKILL.md",
+      "skillFolderHash": "607f6daaeb3984e7718cd3e017330897b48e2ef8",
+      "installedAt": "2026-01-26T13:34:51.881Z",
+      "updatedAt": "2026-01-26T13:34:51.881Z"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/skills.git",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "skillFolderHash": "c2f31172b6f256272305a5e6e7228b258446899f",
+      "installedAt": "2026-01-27T08:17:09.394Z",
+      "updatedAt": "2026-01-27T08:17:09.394Z"
+    },
+    "refactor": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/github/awesome-copilot.git",
+      "skillPath": "skills/refactor/SKILL.md",
+      "skillFolderHash": "0eb40c76984a5aede56132139ac6b546c4562d33",
+      "installedAt": "2026-01-28T02:40:29.235Z",
+      "updatedAt": "2026-01-28T02:40:29.235Z"
+    },
+    "python-testing-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/wshobson/agents.git",
+      "skillPath": "plugins/python-development/skills/python-testing-patterns/SKILL.md",
+      "skillFolderHash": "5bdbe750567d177f6d9f2bbd10cc02ce9efe9e22",
+      "installedAt": "2026-01-28T09:35:39.763Z",
+      "updatedAt": "2026-01-28T09:35:39.763Z"
+    },
+    "docker-expert": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/sickn33/antigravity-awesome-skills.git",
+      "skillPath": "skills/docker-expert/SKILL.md",
+      "skillFolderHash": "45853e487ac0d45f8cded5d33ac97fa34d2f3c0a",
+      "installedAt": "2026-01-30T05:39:46.256Z",
+      "updatedAt": "2026-01-30T05:39:46.256Z"
+    },
+    "chrome-devtools": {
+      "source": "mrgoonie/claudekit-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mrgoonie/claudekit-skills.git",
+      "skillPath": ".claude/skills/chrome-devtools/SKILL.md",
+      "skillFolderHash": "6fe1abe8247d526712cc5d8c897a4b80dc825871",
+      "installedAt": "2026-01-30T07:02:27.254Z",
+      "updatedAt": "2026-01-30T11:47:21.087Z"
+    },
+    "dispatching-parallel-agents": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/dispatching-parallel-agents/SKILL.md",
+      "skillFolderHash": "7c90f50b6fe4631ed73563396a8f87a505915509",
+      "installedAt": "2026-01-31T05:19:14.899Z",
+      "updatedAt": "2026-01-31T05:19:14.899Z"
+    },
+    "executing-plans": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/executing-plans/SKILL.md",
+      "skillFolderHash": "75248b138170840e3e82680cfde7ca615414a548",
+      "installedAt": "2026-01-31T05:19:15.171Z",
+      "updatedAt": "2026-01-31T05:19:15.171Z"
+    },
+    "finishing-a-development-branch": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/finishing-a-development-branch/SKILL.md",
+      "skillFolderHash": "7656b8ebe0c9659ea548ba2981b078b333d1846e",
+      "installedAt": "2026-01-31T05:19:15.436Z",
+      "updatedAt": "2026-01-31T05:19:15.436Z"
+    },
+    "receiving-code-review": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/receiving-code-review/SKILL.md",
+      "skillFolderHash": "7750c56fddb8b2f1cbdb1550a6e3e40d2eeac5f1",
+      "installedAt": "2026-01-31T05:19:15.877Z",
+      "updatedAt": "2026-01-31T05:19:15.877Z"
+    },
+    "requesting-code-review": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/requesting-code-review/SKILL.md",
+      "skillFolderHash": "dbe9c65c5af4fa294ec9d60c1732d806e664530c",
+      "installedAt": "2026-01-31T05:19:16.140Z",
+      "updatedAt": "2026-01-31T05:19:16.140Z"
+    },
+    "subagent-driven-development": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/subagent-driven-development/SKILL.md",
+      "skillFolderHash": "0a57c1590ddebe07ab4963238b6429447459659a",
+      "installedAt": "2026-01-31T05:19:16.406Z",
+      "updatedAt": "2026-01-31T05:19:16.406Z"
+    },
+    "systematic-debugging": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/systematic-debugging/SKILL.md",
+      "skillFolderHash": "828c239ac986cc1fc7edd10292f66e4a3640e9c0",
+      "installedAt": "2026-01-31T05:19:16.671Z",
+      "updatedAt": "2026-01-31T05:19:16.671Z"
+    },
+    "test-driven-development": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/test-driven-development/SKILL.md",
+      "skillFolderHash": "98904a7d8e0e04b9bd46220b9b17298f45fe0b72",
+      "installedAt": "2026-01-31T05:19:16.936Z",
+      "updatedAt": "2026-01-31T05:19:16.936Z"
+    },
+    "using-git-worktrees": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/using-git-worktrees/SKILL.md",
+      "skillFolderHash": "a5b3f5965f321175a7f07dcadff0bb79adb9e9f7",
+      "installedAt": "2026-01-31T05:19:17.201Z",
+      "updatedAt": "2026-01-31T05:19:17.201Z"
+    },
+    "using-superpowers": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/using-superpowers/SKILL.md",
+      "skillFolderHash": "986738c8d463796edec77e86824e53c6b03e61da",
+      "installedAt": "2026-01-31T05:19:17.468Z",
+      "updatedAt": "2026-01-31T05:19:17.468Z"
+    },
+    "verification-before-completion": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/verification-before-completion/SKILL.md",
+      "skillFolderHash": "ceb2f1f67f4cadb29b32a06e54d3d0be832071f5",
+      "installedAt": "2026-01-31T05:19:17.733Z",
+      "updatedAt": "2026-01-31T05:19:17.733Z"
+    },
+    "writing-plans": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/writing-plans/SKILL.md",
+      "skillFolderHash": "ff9617a705411dd9ab273366106f4f7f83f9f60d",
+      "installedAt": "2026-01-31T05:19:17.995Z",
+      "updatedAt": "2026-01-31T05:19:17.995Z"
+    },
+    "writing-skills": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/obra/superpowers.git",
+      "skillPath": "skills/writing-skills/SKILL.md",
+      "skillFolderHash": "6396b432b11f15010bb3121d010ca3c3e50088bc",
+      "installedAt": "2026-01-31T05:19:18.260Z",
+      "updatedAt": "2026-01-31T05:19:18.260Z"
+    },
+    "agent-browser": {
+      "source": "vercel-labs/agent-browser",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "skillFolderHash": "055f4a89276ed2c51b335c2e492ce863afb0cf8f",
+      "installedAt": "2026-01-31T05:46:52.142Z",
+      "updatedAt": "2026-01-31T05:46:52.142Z"
+    },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/skills.git",
+      "skillPath": "skills/skill-creator/SKILL.md",
+      "skillFolderHash": "7bd8fc459f09f0e14dcc2adbb4a5a58e60ea755c",
+      "installedAt": "2026-02-04T03:14:11.828Z",
+      "updatedAt": "2026-02-04T03:14:11.828Z"
+    },
+    "ralph-loop": {
+      "source": "andrelandgraf/fullstackrecipes",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/andrelandgraf/fullstackrecipes.git",
+      "skillPath": "skills/ralph-loop/SKILL.md",
+      "skillFolderHash": "5798770ad83e8276acf1d297a9ac0a67ecc59139",
+      "installedAt": "2026-02-05T09:19:34.011Z",
+      "updatedAt": "2026-02-05T09:19:34.011Z"
+    },
+    "feishu-automation": {
+      "source": "aaaaqwq/claude-code-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/aaaaqwq/claude-code-skills.git",
+      "skillPath": "feishu-automation/SKILL.md",
+      "skillFolderHash": "a868bb85a31f5881397a07632e1c6ba26f4c81fd",
+      "installedAt": "2026-02-06T06:41:05.759Z",
+      "updatedAt": "2026-02-06T06:41:05.759Z"
+    },
+    "cucumber-gherkin": {
+      "source": "el-feo/ai-context",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/el-feo/ai-context.git",
+      "skillPath": "plugins/ruby-rails/skills/cucumber-gherkin/SKILL.md",
+      "skillFolderHash": "b1fde089c27550a6e3a985c3e8c84ddc6742840c",
+      "installedAt": "2026-02-06T09:14:35.853Z",
+      "updatedAt": "2026-02-06T09:14:35.853Z"
+    }
+  },
+  "dismissed": {
+    "findSkillsPrompt": true
+  },
+  "lastSelectedAgents": [
+    "amp",
+    "codex",
+    "gemini-cli",
+    "github-copilot",
+    "kimi-cli",
+    "opencode",
+    "claude-code"
+  ]
+}
