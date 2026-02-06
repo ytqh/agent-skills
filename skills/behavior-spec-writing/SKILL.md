@@ -11,8 +11,8 @@ Write Gherkin-based behavior specifications that define expected system behavior
 
 1. Read the implementation plan from `docs/plan/` to understand the change scope
 2. Identify affected dimensions:
-   - **Feature spec**: new/changed feature → `docs/spec/feature-spec/{feature-name}.yaml`
-   - **Core specs**: evaluate impact on each core module → `docs/spec/core-spec/{module}.yaml`
+   - **Feature spec**: new/changed feature → `docs/spec/feature-spec/{feature-name}.feature`
+   - **Core specs**: evaluate impact on each core module → `docs/spec/core-spec/{module}.feature`
 3. Read existing spec files for affected modules (if they exist)
 4. Draft new/updated specs using Gherkin syntax in YAML format
 5. Present specs to user for review before writing
@@ -23,27 +23,27 @@ Write Gherkin-based behavior specifications that define expected system behavior
 ### Feature Specs — per feature, created/updated with each feature change
 
 ```
-docs/spec/feature-spec/{feature-name}.yaml
+docs/spec/feature-spec/{feature-name}.feature
 ```
 
-Example: `docs/spec/feature-spec/order-strategy.yaml`
+Example: `docs/spec/feature-spec/order-strategy.feature`
 
 One file per feature. Created when a new feature is introduced. Updated when the feature changes.
 
 ### Core Specs — per core module, long-lived and stable
 
 ```
-docs/spec/core-spec/{module}.yaml
+docs/spec/core-spec/{module}.feature
 ```
 
 Example:
 Fixed core modules (create only when first needed, then maintain):
 
-- `docs/spec/core-spec/predict.yaml` — prediction engine behavior
-- `docs/spec/core-spec/bet.yaml` — betting logic behavior
-- `docs/spec/core-spec/order.yaml` — order processing behavior
-- `docs/spec/core-spec/data-sync.yaml` — data synchronization behavior
-- `docs/spec/core-spec/trigger.yaml` — trigger/event behavior
+- `docs/spec/core-spec/predict.feature` — prediction engine behavior
+- `docs/spec/core-spec/bet.feature` — betting logic behavior
+- `docs/spec/core-spec/order.feature` — order processing behavior
+- `docs/spec/core-spec/data-sync.feature` — data synchronization behavior
+- `docs/spec/core-spec/trigger.feature` — trigger/event behavior
 
 After any feature change, evaluate ALL core modules for behavioral impact. Update affected core specs to keep them consistent. Do NOT update core specs that are unaffected.
 
