@@ -1,10 +1,6 @@
 # CI Quality Gate (GitHub Actions)
 
-目标：将以下 checks 作为 PR required checks：
-- `spec-lint`：Gherkin `.feature` lint（gherkin-lint）
-- `spec-trace`：新增/修改行为必须被测试引用（Spec -> Tests）
-- `tests + coverage-core-100`：核心模块 100% branch coverage
-- 可选：`integration`（Postgres/Redis/Temporal）
+目标：将“行为验证 tests + 100% branch coverage（核心逻辑模块）”作为 PR required checks 的质量门禁。
 
 ## Required Checks Naming
 
@@ -12,11 +8,11 @@ GitHub branch protection 依赖 check name。保持 job `name:` 稳定，避免 
 
 ## Make CI Self-Contained
 
-不要在 workflow 里引用 `~/.agents/...`。CI runner 不会携带本地 skills。
+不要在 workflow 里引用 `~/.agents/...` 或任何本地 skills 路径。CI runner 不会携带本 skill 包。
 
 做法：
-1. 将本 skill 下 `scripts/*.py` vendoring 到目标仓库（例如 `scripts/ci/`）
-2. workflow 只调用仓库内脚本
+1. 将所有 checks 逻辑以“目标仓库内的文件 + 标准命令”的形式落地（tests / lint / coverage）
+2. workflow 只调用目标仓库中的命令（例如 `pytest`, `go test`, `npm test`, `coverage report`, `npx gherkin-lint`）
 
 ## Workflow Template
 
@@ -29,5 +25,4 @@ GitHub branch protection 依赖 check name。保持 job `name:` 稳定，避免 
 - 或 `.coveragerc` 设置 `branch = True`
 
 然后用 gate 脚本强制 100%：
-- `python scripts/ci/python_coverage_gate.py --require-branch-data --fail-under 100 --include 'src/core/*'`
-
+- `python -m coverage report --precision=2 --show-missing --fail-under=100 --include 'src/core/*'`

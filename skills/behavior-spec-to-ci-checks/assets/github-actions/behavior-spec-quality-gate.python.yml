@@ -5,75 +5,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  spec-lint:
-    name: spec-lint
+  quality-gate:
+    name: quality-gate
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Lint changed .feature files
-        run: |
-          python scripts/ci/gherkin_lint_changed.py \
-            --base "${{ github.event.pull_request.base.sha }}" \
-            --head "${{ github.event.pull_request.head.sha }}"
-
-  spec-trace:
-    name: spec-trace
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Enforce spec traceability (incremental rollout)
-        run: |
-          python scripts/ci/spec_trace_check.py \
-            --mode diff-tags \
-            --base "${{ github.event.pull_request.base.sha }}" \
-            --head "${{ github.event.pull_request.head.sha }}"
-
-  tests:
-    name: tests + coverage-core-100
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-      temporal:
-        image: temporalio/auto-setup:1.23
-        ports:
-          - 7233:7233
+    # Optional: enable these only if you have integration tests that need real infra.
+    # services:
+    #   postgres:
+    #     image: postgres:16
+    #     env:
+    #       POSTGRES_PASSWORD: postgres
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd "pg_isready -U postgres"
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
+    #   redis:
+    #     image: redis:7
+    #     ports:
+    #       - 6379:6379
+    #   temporal:
+    #     image: temporalio/auto-setup:1.23
+    #     ports:
+    #       - 7233:7233
     env:
       # Prevent side effects by default. Tests should use mocks/fakes.
       ALLOW_EXTERNAL_NETWORK: "0"
@@ -100,8 +55,8 @@ jobs:
 
       - name: Enforce 100% branch coverage for core modules
         run: |
-          python scripts/ci/python_coverage_gate.py \
-            --require-branch-data \
-            --fail-under 100 \
+          python -m coverage report \
+            --precision=2 \
+            --show-missing \
+            --fail-under=100 \
             --include "src/core/*"
-
