@@ -24,9 +24,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/benedictking/exa-search.git",
       "skillPath": ".claude/skills/exa-search/SKILL.md",
-      "skillFolderHash": "af0cccbc91a17aae36c67e1808df6e9539661d09",
+      "skillFolderHash": "f95759ba022dac80196b88a1fcee949136546e9f",
       "installedAt": "2026-01-26T09:59:25.899Z",
-      "updatedAt": "2026-01-26T09:59:25.899Z"
+      "updatedAt": "2026-02-07T07:14:35.563Z"
     },
     "sqlalchemy-postgres": {
       "source": "cfircoo/claude-code-toolkit",

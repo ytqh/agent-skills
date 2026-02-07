@@ -1,6 +1,6 @@
 ---
 name: exa-search
-version: 1.0.0
+version: 1.0.1
 author: BenedictKing
 description: "Semantic search skill using Exa API for embeddings-based search, similar content discovery, and structured research. Use when you need semantic search, find similar pages, or category-specific searches. Triggers: exa, semantic search, find similar, research paper, github search, 语义搜索, 相似内容"
 allowed-tools:
@@ -38,7 +38,7 @@ Use Task tool to invoke `exa-fetcher` sub-skill, passing command and JSON (stdin
 Task parameters:
 - subagent_type: Bash
 - description: "Call Exa API"
-- prompt: cat <<'JSON' | node .claude/skills/exa-search/exa-api.js <search|contents|findsimilar|answer|research>
+- prompt: cat <<'JSON' | node .claude/skills/exa-search/exa-api.cjs <search|contents|findsimilar|answer|research>
   { ...payload... }
   JSON
 ```
@@ -48,7 +48,7 @@ Task parameters:
 ### 1) Search
 
 ```bash
-cat <<'JSON' | node .claude/skills/exa-search/exa-api.js search
+cat <<'JSON' | node .claude/skills/exa-search/exa-api.cjs search
 {
   "query": "Latest research in LLMs",
   "type": "auto",
@@ -82,7 +82,7 @@ JSON
 ### 2) Contents
 
 ```bash
-cat <<'JSON' | node .claude/skills/exa-search/exa-api.js contents
+cat <<'JSON' | node .claude/skills/exa-search/exa-api.cjs contents
 {
   "ids": ["result-id-1", "result-id-2"],
   "text": true,
@@ -95,7 +95,7 @@ JSON
 ### 3) Find Similar
 
 ```bash
-cat <<'JSON' | node .claude/skills/exa-search/exa-api.js findsimilar
+cat <<'JSON' | node .claude/skills/exa-search/exa-api.cjs findsimilar
 {
   "url": "https://example.com/article",
   "numResults": 10,
@@ -114,7 +114,7 @@ JSON
 ### 4) Answer
 
 ```bash
-cat <<'JSON' | node .claude/skills/exa-search/exa-api.js answer
+cat <<'JSON' | node .claude/skills/exa-search/exa-api.cjs answer
 {
   "query": "What is the capital of France?",
   "numResults": 5,
@@ -127,7 +127,7 @@ JSON
 ### 5) Research
 
 ```bash
-cat <<'JSON' | node .claude/skills/exa-search/exa-api.js research
+cat <<'JSON' | node .claude/skills/exa-search/exa-api.cjs research
 {
   "input": "What are the latest developments in AI?",
   "model": "auto",
