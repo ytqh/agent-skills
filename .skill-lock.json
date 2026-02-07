@@ -51,18 +51,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/github/awesome-copilot.git",
       "skillPath": "skills/refactor/SKILL.md",
-      "skillFolderHash": "0eb40c76984a5aede56132139ac6b546c4562d33",
+      "skillFolderHash": "01cfb6a412faf9d680880cc3f631c419121a9916",
       "installedAt": "2026-01-28T02:40:29.235Z",
-      "updatedAt": "2026-01-28T02:40:29.235Z"
+      "updatedAt": "2026-02-07T07:15:22.163Z"
     },
     "python-testing-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
       "sourceUrl": "https://github.com/wshobson/agents.git",
       "skillPath": "plugins/python-development/skills/python-testing-patterns/SKILL.md",
-      "skillFolderHash": "5bdbe750567d177f6d9f2bbd10cc02ce9efe9e22",
+      "skillFolderHash": "79ea3b35b9b8bb7dd47b566fd085ec45f8a6efe2",
       "installedAt": "2026-01-28T09:35:39.763Z",
-      "updatedAt": "2026-01-28T09:35:39.763Z"
+      "updatedAt": "2026-02-07T07:15:28.382Z"
     },
     "docker-expert": {
       "source": "sickn33/antigravity-awesome-skills",
@@ -195,27 +195,27 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/writing-skills/SKILL.md",
-      "skillFolderHash": "6396b432b11f15010bb3121d010ca3c3e50088bc",
+      "skillFolderHash": "657cdd6aef472054ffd3f0e7798494d79be9f807",
       "installedAt": "2026-01-31T05:19:18.260Z",
-      "updatedAt": "2026-01-31T05:19:18.260Z"
+      "updatedAt": "2026-02-07T07:15:33.529Z"
     },
     "agent-browser": {
       "source": "vercel-labs/agent-browser",
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "055f4a89276ed2c51b335c2e492ce863afb0cf8f",
+      "skillFolderHash": "534183ba408692754ff5470166200d672209e96c",
       "installedAt": "2026-01-31T05:46:52.142Z",
-      "updatedAt": "2026-01-31T05:46:52.142Z"
+      "updatedAt": "2026-02-07T07:15:39.053Z"
     },
     "skill-creator": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "sourceUrl": "https://github.com/anthropics/skills.git",
       "skillPath": "skills/skill-creator/SKILL.md",
-      "skillFolderHash": "7bd8fc459f09f0e14dcc2adbb4a5a58e60ea755c",
+      "skillFolderHash": "a01fbe3fa7f17f64173bd4fdcfecea86a3fd664c",
       "installedAt": "2026-02-04T03:14:11.828Z",
-      "updatedAt": "2026-02-04T03:14:11.828Z"
+      "updatedAt": "2026-02-07T07:15:44.718Z"
     },
     "ralph-loop": {
       "source": "andrelandgraf/fullstackrecipes",
