@@ -1,0 +1,208 @@
+name: e2e-setup-reusable
+
+on:
+  # Reusable workflow: called by feature-specific workflows.
+  workflow_call:
+    inputs:
+      check_name:
+        description: "Stable check name shown in GitHub checks UI."
+        required: true
+        type: string
+      working_directory:
+        description: "Project directory where commands should run."
+        required: false
+        default: "."
+        type: string
+      install_command:
+        description: "Dependency install/bootstrap command. Empty string means skip."
+        required: false
+        default: ""
+        type: string
+      migration_command:
+        description: "Database/schema migration command. Empty string means skip."
+        required: false
+        default: ""
+        type: string
+      seed_command:
+        description: "Deterministic seed import command for CI. Empty string means skip."
+        required: false
+        default: ""
+        type: string
+      startup_command:
+        description: "Command that starts the service under test. Empty string means no startup."
+        required: false
+        default: ""
+        type: string
+      healthcheck_url:
+        description: "HTTP URL used to verify startup readiness. Empty string means skip healthcheck."
+        required: false
+        default: ""
+        type: string
+      startup_timeout_seconds:
+        description: "Timeout for healthcheck wait loop."
+        required: false
+        default: 120
+        type: number
+      test_command:
+        description: "E2E test command executed after setup."
+        required: true
+        type: string
+      fail_if_no_tests:
+        description: "When false, treat no-tests exit code as pass (see no_tests_exit_code)."
+        required: false
+        default: true
+        type: boolean
+      no_tests_exit_code:
+        description: "Framework-specific exit code meaning 'no tests collected' (example: pytest=5)."
+        required: false
+        default: ""
+        type: string
+      upload_logs_on_success:
+        description: "Upload startup/service logs even when tests pass."
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  e2e:
+    name: ${{ inputs.check_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+
+    # Add infra services your project needs.
+    # Keep these local in CI when possible to reduce external mocking.
+    # services:
+    #   postgres:
+    #     image: postgres:16
+    #     env:
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_PASSWORD: postgres
+    #       POSTGRES_DB: app
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd "pg_isready -U postgres -d app"
+    #       --health-interval 5s
+    #       --health-timeout 5s
+    #       --health-retries 20
+    #   redis:
+    #     image: redis:7-alpine
+    #     ports:
+    #       - 6379:6379
+
+    env:
+      # Global CI switch you can use in app code to disable side effects.
+      CI: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Configure runtime/toolchain here.
+      # Example (Python):
+      # - uses: actions/setup-python@v5
+      #   with:
+      #     python-version: "3.12"
+      # - uses: astral-sh/setup-uv@v5
+      - name: Runtime setup placeholder
+        run: |
+          echo "Replace this step with your runtime setup (Node/Python/Go/Java/etc.)."
+
+      - name: Install dependencies
+        if: ${{ inputs.install_command != '' }}
+        env:
+          INSTALL_COMMAND: ${{ inputs.install_command }}
+        run: |
+          set -euo pipefail
+          bash -lc "$INSTALL_COMMAND"
+
+      - name: Run migrations
+        if: ${{ inputs.migration_command != '' }}
+        env:
+          MIGRATION_COMMAND: ${{ inputs.migration_command }}
+        run: |
+          set -euo pipefail
+          bash -lc "$MIGRATION_COMMAND"
+
+      - name: Import seed data
+        if: ${{ inputs.seed_command != '' }}
+        env:
+          SEED_COMMAND: ${{ inputs.seed_command }}
+        run: |
+          set -euo pipefail
+          bash -lc "$SEED_COMMAND"
+
+      - name: Start service under test
+        if: ${{ inputs.startup_command != '' }}
+        env:
+          STARTUP_COMMAND: ${{ inputs.startup_command }}
+        run: |
+          set -euo pipefail
+          nohup bash -lc "$STARTUP_COMMAND" > "$RUNNER_TEMP/e2e-service.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/e2e-service.pid"
+
+      - name: Wait for healthcheck
+        if: ${{ inputs.startup_command != '' && inputs.healthcheck_url != '' }}
+        env:
+          HEALTHCHECK_URL: ${{ inputs.healthcheck_url }}
+          STARTUP_TIMEOUT_SECONDS: ${{ inputs.startup_timeout_seconds }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 "$STARTUP_TIMEOUT_SECONDS"); do
+            if curl -fsS "$HEALTHCHECK_URL" >/dev/null; then
+              echo "Service is healthy."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Service failed healthcheck in ${STARTUP_TIMEOUT_SECONDS}s"
+          tail -n 200 "$RUNNER_TEMP/e2e-service.log" || true
+          exit 1
+
+      - name: Run E2E tests
+        env:
+          TEST_COMMAND: ${{ inputs.test_command }}
+          FAIL_IF_NO_TESTS: ${{ inputs.fail_if_no_tests }}
+          NO_TESTS_EXIT_CODE: ${{ inputs.no_tests_exit_code }}
+        run: |
+          set -euo pipefail
+          if [ "$FAIL_IF_NO_TESTS" = "true" ] || [ -z "$NO_TESTS_EXIT_CODE" ]; then
+            bash -lc "$TEST_COMMAND"
+            exit 0
+          fi
+
+          set +e
+          bash -lc "$TEST_COMMAND"
+          code=$?
+          set -e
+
+          if [ "$code" -eq "$NO_TESTS_EXIT_CODE" ]; then
+            echo "No tests collected; passing because fail_if_no_tests=false."
+            exit 0
+          fi
+          exit "$code"
+
+      - name: Show service log tail on failure
+        if: ${{ failure() && inputs.startup_command != '' }}
+        run: tail -n 300 "$RUNNER_TEMP/e2e-service.log" || true
+
+      - name: Upload service logs
+        if: ${{ inputs.startup_command != '' && (failure() || inputs.upload_logs_on_success) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.check_name }}-service-log
+          path: ${{ runner.temp }}/e2e-service.log
+          retention-days: 7
+
+      - name: Stop service under test
+        if: ${{ always() && inputs.startup_command != '' }}
+        run: |
+          set -euo pipefail
+          if [ -f "$RUNNER_TEMP/e2e-service.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/e2e-service.pid")" 2>/dev/null || true
+          fi

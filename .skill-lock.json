@@ -243,6 +243,51 @@
       "skillFolderHash": "b1fde089c27550a6e3a985c3e8c84ddc6742840c",
       "installedAt": "2026-02-06T09:14:35.853Z",
       "updatedAt": "2026-02-06T09:14:35.853Z"
+    },
+    "threat-modeling-expert": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/sickn33/antigravity-awesome-skills.git",
+      "skillPath": "skills/threat-modeling-expert/SKILL.md",
+      "skillFolderHash": "b0ba2e129b881fdab2f1dea1b274638d4d7ee4c2",
+      "installedAt": "2026-02-11T07:36:42.238Z",
+      "updatedAt": "2026-02-11T07:36:42.238Z"
+    },
+    "security-compliance": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/davila7/claude-code-templates.git",
+      "skillPath": "cli-tool/components/skills/development/security-compliance/SKILL.md",
+      "skillFolderHash": "9c0a362b64ec404498f071e36d745ace14eac6c0",
+      "installedAt": "2026-02-11T07:39:28.752Z",
+      "updatedAt": "2026-02-11T07:39:28.752Z"
+    },
+    "cloudflare": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/cloudflare/skills.git",
+      "skillPath": "skills/cloudflare/SKILL.md",
+      "skillFolderHash": "208429c45e30cbb86e16caddb63d1862c45a0b9f",
+      "installedAt": "2026-02-13T07:17:56.635Z",
+      "updatedAt": "2026-02-13T07:17:56.635Z"
+    },
+    "wrangler": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/cloudflare/skills.git",
+      "skillPath": "skills/wrangler/SKILL.md",
+      "skillFolderHash": "1427c3b406951268727ee720eac63975815a94c4",
+      "installedAt": "2026-02-13T07:20:17.094Z",
+      "updatedAt": "2026-02-13T07:20:17.094Z"
+    },
+    "security-awareness": {
+      "source": "1Password/SCAM",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/1Password/SCAM.git",
+      "skillPath": "skills/security-awareness/SKILL.md",
+      "skillFolderHash": "893125ac1e936fc3102367c1c5f053c1b8dfad9a",
+      "installedAt": "2026-02-13T08:02:42.646Z",
+      "updatedAt": "2026-02-13T08:02:42.646Z"
     }
   },
   "dismissed": {

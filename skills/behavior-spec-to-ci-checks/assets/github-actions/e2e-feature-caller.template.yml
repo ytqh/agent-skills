@@ -1,0 +1,53 @@
+name: E2E Feature Example
+
+on:
+  pull_request:
+    # Tune paths to avoid unrelated CI load.
+    paths:
+      - "src/**"
+      - "tests/e2e/**"
+      - ".github/workflows/e2e-feature-example.yml"
+      - ".github/workflows/e2e-setup-reusable.yml"
+  workflow_dispatch:
+
+jobs:
+  e2e-feature-example:
+    # Keep this check name stable for branch protection rules.
+    uses: ./.github/workflows/e2e-setup-reusable.yml
+    with:
+      check_name: e2e-feature-example
+      working_directory: .
+
+      # Replace with your project-specific install command.
+      install_command: |
+        # Python example:
+        # uv sync --dev
+        # Node example:
+        # npm ci
+        # Go example:
+        # go mod download
+        echo "TODO: set install_command"
+
+      # Optional, enable only when your suite needs these steps.
+      migration_command: ""
+      seed_command: |
+        # Use deterministic fixed seed fixtures in CI.
+        # Do NOT sync production data in CI.
+        echo "TODO: import deterministic seed profile for this feature"
+      startup_command: ""
+      healthcheck_url: ""
+      startup_timeout_seconds: 120
+
+      # Point to this feature's e2e suite/tag.
+      test_command: |
+        # pytest example: uv run pytest tests/e2e/features/feature_example -m e2e_feature_example -q
+        # playwright example: npm run test:e2e -- --grep "@feature-example"
+        echo "TODO: set test_command"
+
+      # If your test framework has a "no tests collected" exit code, set it.
+      fail_if_no_tests: false
+      no_tests_exit_code: "5"
+
+      upload_logs_on_success: false
+    # Keep if reusable workflow needs secrets from caller repo/org.
+    secrets: inherit
