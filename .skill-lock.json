@@ -6,9 +6,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/brainstorming/SKILL.md",
-      "skillFolderHash": "761c2f359474328f40d73db9cb4cc1f5721917e5",
+      "skillFolderHash": "d28aa4ed67fe5a3f1336f0fcccb1e548c67dc864",
       "installedAt": "2026-01-26T07:36:15.332Z",
-      "updatedAt": "2026-01-31T05:19:14.639Z"
+      "updatedAt": "2026-02-14T06:42:17.386Z"
     },
     "context7": {
       "source": "intellectronica/agent-skills",
@@ -24,9 +24,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/benedictking/exa-search.git",
       "skillPath": ".claude/skills/exa-search/SKILL.md",
-      "skillFolderHash": "f95759ba022dac80196b88a1fcee949136546e9f",
+      "skillFolderHash": "0acec55b8e77cf1e7136df08ed21796291cd8abb",
       "installedAt": "2026-01-26T09:59:25.899Z",
-      "updatedAt": "2026-02-07T07:14:35.563Z"
+      "updatedAt": "2026-02-14T06:42:21.908Z"
     },
     "sqlalchemy-postgres": {
       "source": "cfircoo/claude-code-toolkit",
@@ -168,9 +168,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/using-superpowers/SKILL.md",
-      "skillFolderHash": "986738c8d463796edec77e86824e53c6b03e61da",
+      "skillFolderHash": "2a7f5982368c25f5352a5be2d10ad9a753334226",
       "installedAt": "2026-01-31T05:19:17.468Z",
-      "updatedAt": "2026-01-31T05:19:17.468Z"
+      "updatedAt": "2026-02-14T06:42:26.527Z"
     },
     "verification-before-completion": {
       "source": "obra/superpowers",
@@ -186,9 +186,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/writing-plans/SKILL.md",
-      "skillFolderHash": "ff9617a705411dd9ab273366106f4f7f83f9f60d",
+      "skillFolderHash": "cf6f5c8813cf0445276129a5f2b443927b50f645",
       "installedAt": "2026-01-31T05:19:17.995Z",
-      "updatedAt": "2026-01-31T05:19:17.995Z"
+      "updatedAt": "2026-02-14T06:42:31.041Z"
     },
     "writing-skills": {
       "source": "obra/superpowers",
@@ -204,9 +204,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "534183ba408692754ff5470166200d672209e96c",
+      "skillFolderHash": "d9ed23aaf02a172820a8b42964cfe2d21e06e25b",
       "installedAt": "2026-01-31T05:46:52.142Z",
-      "updatedAt": "2026-02-07T07:15:39.053Z"
+      "updatedAt": "2026-02-14T06:42:36.103Z"
     },
     "skill-creator": {
       "source": "anthropics/skills",
