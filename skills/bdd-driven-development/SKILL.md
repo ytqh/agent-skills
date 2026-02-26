@@ -1,6 +1,6 @@
 ---
 name: bdd-driven-development
-description: Merge of `behavior-spec-writing` and `behavior-spec-to-ci-checks`. Use this skill AFTER requirement/feature design is complete and BEFORE implementation. Enforce BDD flow: feature analysis/design -> write/update `.feature` specs directly into `docs/spec/**` -> ask user to review and WAIT for explicit approval command -> generate/update checks (UT/Integration/E2E + CI gate) from approved specs -> prove RED state (new tests fail first) before any implementation.
+description: "Use this skill AFTER requirement/feature design is complete and BEFORE implementation. Enforce BDD flow: feature analysis/design -> write/update *.feature specs directly into docs/spec/** -> ask user to review and WAIT for explicit approval command -> generate/update checks (UT/Integration/E2E + CI gate) from approved specs -> prove RED state (new tests fail first) before any implementation."
 ---
 
 # BDD Driven Development
