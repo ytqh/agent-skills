@@ -9,9 +9,9 @@ Goal: Fix the pr issues, feedback comments and all failed checks on the current 
 2. Analyze each issue for urgency, validity, outdated context, and impact.
 3. Read related issues/PRs as background context when needed.
 4. **BDD-first requirement when a real code issue is confirmed:**
-   - Use `behavior-spec-writing` to update the existing feature spec (and affected core spec if needed) so the reported behavior is explicitly covered.
+   - Use `bdd-driven-development` to update the existing feature spec (and affected core spec if needed) so the reported behavior is explicitly covered.
    - Lint updated `.feature` files with `gherkin-lint`.
-   - Use `behavior-spec-to-ci-checks` to update/add tests and CI checks so the behavior is enforced by automated checks.
+   - Continue in the same `bdd-driven-development` flow to update/add tests and CI checks, and prove RED before implementation.
 5. Use `superpowers:writing-plans` to write an implementation plan for the approved fix scope.
 6. Use `superpowers:executing-plans` to implement the plan and fix the issues.
 7. Run targeted tests and required checks to verify the fix and spec/check alignment.
