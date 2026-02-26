@@ -69,9 +69,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/sickn33/antigravity-awesome-skills.git",
       "skillPath": "skills/docker-expert/SKILL.md",
-      "skillFolderHash": "45853e487ac0d45f8cded5d33ac97fa34d2f3c0a",
+      "skillFolderHash": "4e4191389b0cbc87dc77090c2255c5495a0b26fa",
       "installedAt": "2026-01-30T05:39:46.256Z",
-      "updatedAt": "2026-01-30T05:39:46.256Z"
+      "updatedAt": "2026-02-26T07:00:42.296Z"
     },
     "chrome-devtools": {
       "source": "mrgoonie/claudekit-skills",
@@ -204,18 +204,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "d9ed23aaf02a172820a8b42964cfe2d21e06e25b",
+      "skillFolderHash": "88b7e785240d14ab80eb11abdd0cbd27b20055c6",
       "installedAt": "2026-01-31T05:46:52.142Z",
-      "updatedAt": "2026-02-14T06:42:36.103Z"
+      "updatedAt": "2026-02-26T07:00:47.850Z"
     },
     "skill-creator": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "sourceUrl": "https://github.com/anthropics/skills.git",
       "skillPath": "skills/skill-creator/SKILL.md",
-      "skillFolderHash": "a01fbe3fa7f17f64173bd4fdcfecea86a3fd664c",
+      "skillFolderHash": "5c26c1472b98de33a48074ba5d3efe3a727b8e37",
       "installedAt": "2026-02-04T03:14:11.828Z",
-      "updatedAt": "2026-02-07T07:15:44.718Z"
+      "updatedAt": "2026-02-26T07:00:53.438Z"
     },
     "ralph-loop": {
       "source": "andrelandgraf/fullstackrecipes",
@@ -231,9 +231,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/aaaaqwq/claude-code-skills.git",
       "skillPath": "feishu-automation/SKILL.md",
-      "skillFolderHash": "a868bb85a31f5881397a07632e1c6ba26f4c81fd",
+      "skillFolderHash": "602e315a5ac5cc805e1450c17f16b27309d1a345",
       "installedAt": "2026-02-06T06:41:05.759Z",
-      "updatedAt": "2026-02-06T06:41:05.759Z"
+      "updatedAt": "2026-02-26T07:00:59.983Z"
     },
     "cucumber-gherkin": {
       "source": "el-feo/ai-context",
@@ -249,9 +249,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/sickn33/antigravity-awesome-skills.git",
       "skillPath": "skills/threat-modeling-expert/SKILL.md",
-      "skillFolderHash": "b0ba2e129b881fdab2f1dea1b274638d4d7ee4c2",
+      "skillFolderHash": "eeb3229285a4ae3c232b826f1e92dd0af8c64677",
       "installedAt": "2026-02-11T07:36:42.238Z",
-      "updatedAt": "2026-02-11T07:36:42.238Z"
+      "updatedAt": "2026-02-26T07:01:18.420Z"
     },
     "security-compliance": {
       "source": "davila7/claude-code-templates",
@@ -267,9 +267,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/cloudflare/skills.git",
       "skillPath": "skills/cloudflare/SKILL.md",
-      "skillFolderHash": "208429c45e30cbb86e16caddb63d1862c45a0b9f",
+      "skillFolderHash": "0189dbba24b50336cf3d72e323a0828da08da8e8",
       "installedAt": "2026-02-13T07:17:56.635Z",
-      "updatedAt": "2026-02-13T07:17:56.635Z"
+      "updatedAt": "2026-02-26T07:01:32.097Z"
     },
     "wrangler": {
       "source": "cloudflare/skills",
@@ -296,6 +296,7 @@
   "lastSelectedAgents": [
     "amp",
     "codex",
+    "cursor",
     "gemini-cli",
     "github-copilot",
     "kimi-cli",

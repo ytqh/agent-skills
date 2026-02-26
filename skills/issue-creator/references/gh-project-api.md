@@ -14,7 +14,7 @@ gh api graphql -f query='
 ' -f owner=OWNER -f repo=REPO
 ```
 
-## Get Project Fields (Status, Priority, etc.)
+## Get Project Fields (Status, Priority, Type, etc.)
 
 ```bash
 gh api graphql -f query='
@@ -64,7 +64,7 @@ gh api graphql -f query='
 ' -f owner=OWNER -f repo=REPO -F number=ISSUE_NUMBER
 ```
 
-## Set Single-Select Field (Status / Priority)
+## Set Single-Select Field (Priority / Status / Type)
 
 ```bash
 gh api graphql -f query='
@@ -81,11 +81,28 @@ gh api graphql -f query='
 ' -f projectId=PROJECT_NODE_ID -f itemId=ITEM_ID -f fieldId=FIELD_ID -f optionId=OPTION_ID
 ```
 
+## Clear Single-Select Field Value (leave Status empty)
+
+```bash
+gh api graphql -f query='
+  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!) {
+    clearProjectV2ItemFieldValue(input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+    }) {
+      projectV2Item { id }
+    }
+  }
+' -f projectId=PROJECT_NODE_ID -f itemId=ITEM_ID -f fieldId=FIELD_ID
+```
+
 ## Typical Flow
 
 1. Discover projects linked to repo
-2. Get project fields to find Status/Priority field IDs and option IDs
+2. Get project fields to find Status/Priority/Type field IDs and option IDs
 3. Create issue with `gh issue create`
 4. Get issue node ID
 5. Add issue to project (`addProjectV2ItemById`)
-6. Set Status and Priority fields (`updateProjectV2ItemFieldValue`)
+6. Set Priority and Type fields (`updateProjectV2ItemFieldValue` / `updateIssue`)
+7. Leave Status empty by default unless explicitly requested
