@@ -288,6 +288,16 @@
       "skillFolderHash": "893125ac1e936fc3102367c1c5f053c1b8dfad9a",
       "installedAt": "2026-02-13T08:02:42.646Z",
       "updatedAt": "2026-02-13T08:02:42.646Z"
+    },
+    "twitter-reader": {
+      "source": "daymade/claude-code-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/daymade/claude-code-skills.git",
+      "skillPath": "twitter-reader/SKILL.md",
+      "skillFolderHash": "f4570578d206bed641fc047c25b1723c5662c166",
+      "pluginName": "twitter-reader",
+      "installedAt": "2026-03-04T02:51:31.659Z",
+      "updatedAt": "2026-03-04T02:51:31.659Z"
     }
   },
   "dismissed": {
@@ -295,6 +305,7 @@
   },
   "lastSelectedAgents": [
     "amp",
+    "cline",
     "codex",
     "cursor",
     "gemini-cli",
