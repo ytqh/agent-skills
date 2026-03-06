@@ -69,9 +69,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/sickn33/antigravity-awesome-skills.git",
       "skillPath": "skills/docker-expert/SKILL.md",
-      "skillFolderHash": "4e4191389b0cbc87dc77090c2255c5495a0b26fa",
+      "skillFolderHash": "85e58e024d1059f0fd899741c08d21fcf94e8b34",
       "installedAt": "2026-01-30T05:39:46.256Z",
-      "updatedAt": "2026-02-26T07:00:42.296Z"
+      "updatedAt": "2026-03-06T03:16:38.424Z"
     },
     "chrome-devtools": {
       "source": "mrgoonie/claudekit-skills",
@@ -204,9 +204,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "88b7e785240d14ab80eb11abdd0cbd27b20055c6",
+      "skillFolderHash": "368263b629b1c1af2abd68ff2e45fa40ead82601",
       "installedAt": "2026-01-31T05:46:52.142Z",
-      "updatedAt": "2026-02-26T07:00:47.850Z"
+      "updatedAt": "2026-03-06T03:16:45.231Z"
     },
     "skill-creator": {
       "source": "anthropics/skills",
@@ -249,9 +249,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/sickn33/antigravity-awesome-skills.git",
       "skillPath": "skills/threat-modeling-expert/SKILL.md",
-      "skillFolderHash": "eeb3229285a4ae3c232b826f1e92dd0af8c64677",
+      "skillFolderHash": "2489637a53b05013c5b3e96d9ad78112fd0571ec",
       "installedAt": "2026-02-11T07:36:42.238Z",
-      "updatedAt": "2026-02-26T07:01:18.420Z"
+      "updatedAt": "2026-03-06T03:16:55.820Z"
     },
     "security-compliance": {
       "source": "davila7/claude-code-templates",
@@ -267,18 +267,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/cloudflare/skills.git",
       "skillPath": "skills/cloudflare/SKILL.md",
-      "skillFolderHash": "0189dbba24b50336cf3d72e323a0828da08da8e8",
+      "skillFolderHash": "bc05e15b7e8215cdeaa288e0d2744323eeb5fd05",
       "installedAt": "2026-02-13T07:17:56.635Z",
-      "updatedAt": "2026-02-26T07:01:32.097Z"
+      "updatedAt": "2026-03-06T03:17:11.700Z"
     },
     "wrangler": {
       "source": "cloudflare/skills",
       "sourceType": "github",
       "sourceUrl": "https://github.com/cloudflare/skills.git",
       "skillPath": "skills/wrangler/SKILL.md",
-      "skillFolderHash": "1427c3b406951268727ee720eac63975815a94c4",
+      "skillFolderHash": "14e1631a53c066784caa8bbdd70d94d95c40101a",
       "installedAt": "2026-02-13T07:20:17.094Z",
-      "updatedAt": "2026-02-13T07:20:17.094Z"
+      "updatedAt": "2026-03-06T03:17:17.807Z"
     },
     "security-awareness": {
       "source": "1Password/SCAM",
@@ -298,6 +298,24 @@
       "pluginName": "twitter-reader",
       "installedAt": "2026-03-04T02:51:31.659Z",
       "updatedAt": "2026-03-04T02:51:31.659Z"
+    },
+    "recall": {
+      "source": "arjunkmrm/recall",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/arjunkmrm/recall.git",
+      "skillPath": "SKILL.md",
+      "skillFolderHash": "c9ec9f119b2cbb01a75086091a068683ec479135",
+      "installedAt": "2026-03-04T11:58:41.641Z",
+      "updatedAt": "2026-03-04T11:58:41.641Z"
+    },
+    "adversarial-review": {
+      "source": "poteto/noodle",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/poteto/noodle.git",
+      "skillPath": ".agents/skills/adversarial-review/SKILL.md",
+      "skillFolderHash": "e0475ca099a636fa4050e78c5761354c65ac8a77",
+      "installedAt": "2026-03-06T03:56:50.179Z",
+      "updatedAt": "2026-03-06T03:56:50.179Z"
     }
   },
   "dismissed": {
