@@ -1,6 +1,6 @@
 ---
 name: bdd-driven-development
-description: "Use this skill AFTER requirement/feature design is complete and BEFORE implementation. Enforce BDD flow: feature analysis/design -> write/update *.feature specs directly into docs/spec/** -> ask user to review and WAIT for explicit approval command -> generate/update checks (UT/Integration/E2E + CI gate) from approved specs -> prove RED state (new tests fail first) before any implementation."
+description: "Use this skill AFTER requirement/feature design is complete and BEFORE implementation. Enforce BDD flow: feature analysis/design -> write/update *.feature specs directly into docs/spec/** -> adversarial-review specs and fix all accepted high/medium findings until clean -> generate/update checks (UT/Integration/E2E + CI gate) from reviewed specs -> prove RED state (new tests fail first) before any implementation."
 ---
 
 # BDD Driven Development
@@ -10,11 +10,11 @@ description: "Use this skill AFTER requirement/feature design is complete and BE
 ## Hard Gates
 
 1. 不要在本 skill 中实现业务功能代码；本 skill 只负责 spec + checks + red proof。
-2. 先写 spec，再等用户明确批准，再写 checks。
+2. 先写 spec，再通过 adversarial-review 自动审查并修复所有 accepted high/medium findings，再写 checks。
 3. checks 必须先 RED：新增/更新测试需要在当前实现上失败，证明覆盖了尚未实现或不符合预期的行为。
 4. 如果 tests 直接通过，说明检查不够有效，必须增强断言或补充分支直到 RED。
 
-## Workflow (Design -> Spec -> Review -> Checks -> RED)
+## Workflow (Design -> Spec -> Adversarial-Review Loop -> Checks -> RED)
 
 1. Confirm scope and prerequisites
    - 需求设计已完成（例如已有 `docs/plan/**`）。
@@ -37,15 +37,20 @@ description: "Use this skill AFTER requirement/feature design is complete and BE
      - `npx -y gherkin-lint -c .gherkin-lintc <path/to/spec.feature>`
    - 所有更新过的 `.feature` 必须 lint clean。
 
-5. Ask user review and WAIT
-   - 向用户展示：
+5. Adversarial-review specs (auto-loop)
+   - Spec 写入并 lint clean 后，**不等待用户确认**，直接调用 `/adversarial-review` 对 spec 变更进行审查。
+   - 审查范围：本次写入/更新的所有 `.feature` 文件。
+   - 收到 verdict 后：
+     a. 逐条检查 Lead Judgment 中 **accepted** 的 findings。
+     b. 对所有 **high** 和 **medium** severity 的 accepted findings，立即修改对应 spec 文件修复问题。
+     c. 修复后重新 lint（Step 4），然后再次调用 `/adversarial-review`。
+     d. 重复 a–c 直到 **没有新增 high/medium accepted findings**。
+   - Low severity 的 findings 记录但不阻塞流程。
+   - 循环结束后，向用户展示：
      - 影响范围（feature/core）
      - 已写入的文件路径
-     - 关键行为变化摘要
-   - 然后等待用户明确指令，例如：
-     - `通过 spec，继续 checks`
-     - `approve spec and continue`
-   - 在收到明确继续指令前，不进入 checks 阶段。
+     - 审查轮次数和关键修复摘要
+   - 然后直接进入 Step 6（不等待用户批准）。
 
 6. Build checks from approved specs
    - 从已批准 `.feature` 推导 test/check 矩阵（UT/Integration/E2E）。
