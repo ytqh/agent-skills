@@ -22,15 +22,20 @@ description: "Create a GitHub pull request for current branch changes. Only use 
    - Use `gh pr create --draft`
    - Infer related issue from branch name if it contains an issue number (e.g. `fix-42`, `feature/123-auth`, `42-bug`)
    - Title: concise summary of changes
-   - Body: summary bullets + test plan (do **not** rely on `Fixes #...` / `Refs #...` keywords for issue linkage)
+   - Body: summary bullets + test plan
+   - If a related issue exists, include `Closes #<issue_number>` in the PR body
+   - If the PR already exists and the closing keyword is missing, use `gh pr edit --body-file` to add it
 
-5. **Bind issue and PR via `gh api` (mandatory when related issue exists)**:
-   - Do this **after** PR creation and **instead of** content-based linking in PR body.
-   - Use `gh api` to create explicit linkage metadata/event between issue and PR.
-   - Minimum requirement: create an issue timeline linkage event via API call (e.g., GraphQL `addComment` on the issue containing the PR URL/number and a stable machine prefix like `PR-LINK:`).
-   - Recommended sequence:
-     - Resolve issue number and PR number/url.
-     - Resolve issue node id: `gh issue view <issue_number> --json id --jq .id`
-     - Create linkage event:
-       - `gh api graphql -f query='mutation($subjectId:ID!, $body:String!){addComment(input:{subjectId:$subjectId, body:$body}){clientMutationId}}' -f subjectId='<issue_node_id>' -f body='PR-LINK: <pr_url>'`
-   - Verify linkage by checking issue timeline/comments via `gh api`/`gh issue view`.
+5. **Verify issue linkage via GitHub's PR/issue reference fields** (mandatory when related issue exists):
+   - Do this **after** PR creation or PR body edit.
+   - Do **not** use issue comments such as `PR-LINK:` as the default linkage mechanism.
+   - Preferred linkage mechanism is the PR body closing keyword:
+     - `Closes #<issue_number>`
+   - Verify the linkage through GraphQL fields rather than comments:
+     - PR side:
+       - `gh api graphql -f query='query($owner:String!, $repo:String!, $num:Int!){ repository(owner:$owner, name:$repo){ pullRequest(number:$num){ closingIssuesReferences(first:20){ nodes { number title url } } } } }' -F owner='<owner>' -F repo='<repo>' -F num=<pr_number>`
+     - Issue side:
+       - `gh api graphql -f query='query($owner:String!, $repo:String!, $num:Int!){ repository(owner:$owner, name:$repo){ issue(number:$num){ closedByPullRequestsReferences(first:20){ nodes { number title url state isDraft } } } } }' -F owner='<owner>' -F repo='<repo>' -F num=<issue_number>`
+   - Success criteria:
+     - the PR includes the target issue in `closingIssuesReferences`
+     - the issue includes the PR in `closedByPullRequestsReferences`

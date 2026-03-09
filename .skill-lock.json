@@ -60,9 +60,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/wshobson/agents.git",
       "skillPath": "plugins/python-development/skills/python-testing-patterns/SKILL.md",
-      "skillFolderHash": "79ea3b35b9b8bb7dd47b566fd085ec45f8a6efe2",
+      "skillFolderHash": "140f6ed7fce2674577596463de07e4565fe68510",
       "installedAt": "2026-01-28T09:35:39.763Z",
-      "updatedAt": "2026-02-07T07:15:28.382Z"
+      "updatedAt": "2026-03-08T08:54:15.944Z"
     },
     "docker-expert": {
       "source": "sickn33/antigravity-awesome-skills",
@@ -204,18 +204,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "368263b629b1c1af2abd68ff2e45fa40ead82601",
+      "skillFolderHash": "45f9dcf935433abcb49929aef1d1bc3dedf20c79",
       "installedAt": "2026-01-31T05:46:52.142Z",
-      "updatedAt": "2026-03-06T03:16:45.231Z"
+      "updatedAt": "2026-03-08T08:54:21.376Z"
     },
     "skill-creator": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "sourceUrl": "https://github.com/anthropics/skills.git",
       "skillPath": "skills/skill-creator/SKILL.md",
-      "skillFolderHash": "5c26c1472b98de33a48074ba5d3efe3a727b8e37",
+      "skillFolderHash": "98a510d1cfef9f82c3b1eec200229ca68725e613",
       "installedAt": "2026-02-04T03:14:11.828Z",
-      "updatedAt": "2026-02-26T07:00:53.438Z"
+      "updatedAt": "2026-03-08T08:54:27.493Z"
     },
     "ralph-loop": {
       "source": "andrelandgraf/fullstackrecipes",
