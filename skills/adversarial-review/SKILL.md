@@ -1,28 +1,23 @@
 ---
 name: adversarial-review
 description: >-
-  Adversarial code review using the opposite model. Spawns 1–3 reviewers on the
-  opposing model (Claude spawns Codex, Codex spawns Claude) to challenge work from
-  distinct critical lenses. Triggers: "adversarial review".
+  Adversarial code review using the opposite model in a tmux session via agent-manager.
+  Spawns 1-3 reviewers on the opposing model (Claude spawns Codex, Codex spawns Claude)
+  to challenge work from distinct critical lenses. Triggers: "adversarial review".
 schedule: "After cook sessions that produce large diffs (200+ lines), implement plan phases, or complete a planning session"
 ---
 
 # Adversarial Review
 
-Spawn reviewers on the **opposite model** to challenge work. Reviewers attack from distinct
-lenses grounded in brain principles. The deliverable is a synthesized verdict — do NOT make
-changes.
+Spawn reviewers on the **opposite model** via tmux sessions (using agent-manager) to challenge
+work. Reviewers attack from distinct lenses. The deliverable is a synthesized verdict — do NOT
+make changes.
 
-**Hard constraint:** Reviewers MUST run via the opposite model's CLI (`codex exec` or
-`claude -p`). Do NOT use subagents, the Agent tool, or any internal delegation mechanism as
+**Hard constraint:** Reviewers MUST run via the opposite model's CLI in a tmux session managed
+by agent-manager. Do NOT use subagents, the Agent tool, or any internal delegation mechanism as
 reviewers — those run on *your own* model, which defeats the purpose.
 
-## Step 1 — Load Principles
-
-Read `brain/principles.md`. Follow every `[[wikilink]]` and read each linked principle file.
-These govern reviewer judgments.
-
-## Step 2 — Determine Scope and Intent
+## Step 1 — Determine Scope and Intent
 
 Identify what to review from context (recent diffs, referenced plans, user message).
 
@@ -34,55 +29,131 @@ Assess change size:
 
 | Size | Threshold | Reviewers |
 |------|-----------|-----------|
-| Small | < 50 lines, 1–2 files | 1 (Skeptic) |
-| Medium | 50–200 lines, 3–5 files | 2 (Skeptic + Architect) |
+| Small | < 50 lines, 1-2 files | 1 (Skeptic) |
+| Medium | 50-200 lines, 3-5 files | 2 (Skeptic + Architect) |
 | Large | 200+ lines or 5+ files | 3 (Skeptic + Architect + Minimalist) |
 
 Read `references/reviewer-lenses.md` for lens definitions.
 
-## Step 3 — Detect Model and Spawn Reviewers
+## Step 2 — Detect Model and Prepare Review Context
 
-Create a temp directory for reviewer output:
+Determine which model you are, then choose the opposite model's CLI:
+
+- **If you are Claude** → use `codex` as the launcher
+- **If you are Codex** → use `claude` as the launcher
+
+Prepare the review context:
+
+1. Collect the diff or files to review
+2. Write the diff/code to a temp file for the reviewer to read:
 
 ```sh
 REVIEW_DIR=$(mktemp -d /tmp/adversarial-review.XXXXXX)
+git diff > "$REVIEW_DIR/diff.patch"
+# or for specific files:
+# cp path/to/file "$REVIEW_DIR/"
 ```
 
-Determine which model you are, then spawn reviewers on the opposite:
+## Step 3 — Create Reviewer Agent Configs and Spawn via Agent-Manager
 
-**If you are Claude** → spawn Codex reviewers via `codex exec`:
+Define the agent-manager CLI path:
 
 ```sh
-codex exec --skip-git-repo-check -o "$REVIEW_DIR/skeptic.md" "prompt" 2>/dev/null
+CLI="python3 $HOME/.agents/skills/agent-manager/scripts/main.py"
 ```
 
-Use `--profile edit` only if the reviewer needs to run tests. Default to read-only.
-Run with `run_in_background: true`, monitor via `TaskOutput` with `block: true, timeout: 600000`.
+For each reviewer lens needed, create a temporary agent config file and use agent-manager
+to start+assign the review task in a tmux session.
 
-**If you are Codex** → spawn Claude reviewers via `claude` CLI:
+### Create agent config files
+
+Create temporary agent markdown files in `/tmp/adversarial-review-agents/`:
 
 ```sh
-claude -p "prompt" > "$REVIEW_DIR/skeptic.md" 2>/dev/null
+mkdir -p /tmp/adversarial-review-agents
 ```
 
-Run with `run_in_background: true`.
+For each reviewer (e.g., skeptic), create `/tmp/adversarial-review-agents/reviewer-{lens}.md`:
 
-Name each output file after the lens: `skeptic.md`, `architect.md`, `minimalist.md`.
+**If you are Claude** (spawning Codex reviewers):
 
-### Reviewer prompt template
+```yaml
+---
+name: reviewer-{lens}
+description: "Adversarial {Lens} reviewer"
+working_directory: {repo_root}
+launcher: codex
+launcher_args:
+  - --skip-git-repo-check
+enabled: true
+---
+```
 
-Each reviewer gets a single prompt containing:
+**If you are Codex** (spawning Claude reviewers):
 
-1. The stated intent (from Step 2)
-2. Their assigned lens (full text from references/reviewer-lenses.md)
-3. The principles relevant to their lens (file contents, not summaries)
-4. The code or diff to review
-5. Instructions: "You are an adversarial reviewer. Your job is to find real problems, not
-   validate the work. Be specific — cite files, lines, and concrete failure scenarios.
-   Rate each finding: high (blocks ship), medium (should fix), low (worth noting).
-   Write findings as a numbered markdown list to your output file."
+```yaml
+---
+name: reviewer-{lens}
+description: "Adversarial {Lens} reviewer"
+working_directory: {repo_root}
+launcher: claude
+launcher_args:
+  - -p
+enabled: true
+---
+```
 
-Spawn all reviewers in parallel.
+### Spawn reviewers
+
+For each reviewer lens, use agent-manager to start the tmux session and assign the review task:
+
+```sh
+# Start the reviewer agent session
+$CLI start reviewer-{lens} --agent-dir /tmp/adversarial-review-agents
+
+# Assign the review task
+$CLI assign reviewer-{lens} --agent-dir /tmp/adversarial-review-agents <<EOF
+You are an adversarial reviewer using the **{Lens}** lens.
+
+## Intent
+{stated intent from Step 1}
+
+## Your Lens
+{full lens text from references/reviewer-lenses.md}
+
+## Instructions
+- You are an adversarial reviewer. Your job is to find real problems, not validate the work.
+- Be specific — cite files, lines, and concrete failure scenarios.
+- Rate each finding: high (blocks ship), medium (should fix), low (worth noting).
+- Review the code/diff at: $REVIEW_DIR/diff.patch
+- Write your findings as a numbered markdown list to: $REVIEW_DIR/{lens}.md
+
+Read the diff, analyze it, write findings to the output file, then exit.
+EOF
+```
+
+Spawn all reviewers in parallel (run each start+assign pair sequentially, but launch all
+lenses without waiting for completion).
+
+### Monitor progress
+
+Poll reviewer output using agent-manager monitor:
+
+```sh
+$CLI monitor reviewer-{lens} -n 50
+```
+
+Wait until all reviewer output files exist in `$REVIEW_DIR/` or a reasonable timeout (10 min).
+
+### Cleanup sessions
+
+After collecting output, stop all reviewer sessions:
+
+```sh
+$CLI stop reviewer-skeptic
+$CLI stop reviewer-architect
+$CLI stop reviewer-minimalist
+```
 
 ## Step 4 — Verify and Synthesize Verdict
 
@@ -107,16 +178,15 @@ Produce a single verdict:
 <one-line summary>
 
 ## Findings
-<numbered list, ordered by severity (high → medium → low)>
+<numbered list, ordered by severity (high -> medium -> low)>
 
 For each finding:
 - **[severity]** Description with file:line references
 - Lens: which reviewer raised it
-- Principle: which brain principle it maps to
 - Recommendation: concrete action, not vague advice
 
 ## What Went Well
-<1–3 things the reviewers found no issue with — acknowledge good work>
+<1-3 things the reviewers found no issue with — acknowledge good work>
 ```
 
 **Verdict logic:**
@@ -126,14 +196,23 @@ For each finding:
 
 ## Step 5 — Render Judgment
 
-After synthesizing the reviewers, apply your own judgment. Using the stated intent and brain
-principles as your frame, state which findings you would accept and which you would reject —
-and why. Reviewers are adversarial by design; not every finding warrants action. Call out
-false positives, overreach, and findings that mistake style for substance.
+After synthesizing the reviewers, apply your own judgment. Using the stated intent as your
+frame, state which findings you would accept and which you would reject — and why. Reviewers
+are adversarial by design; not every finding warrants action. Call out false positives,
+overreach, and findings that mistake style for substance.
 
 Append to the verdict:
 
 ```
 ## Lead Judgment
 <for each finding: accept or reject with a one-line rationale>
+```
+
+## Cleanup
+
+Remove temp files after the review is complete:
+
+```sh
+rm -rf "$REVIEW_DIR"
+rm -rf /tmp/adversarial-review-agents
 ```

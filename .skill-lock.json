@@ -308,14 +308,23 @@
       "installedAt": "2026-03-04T11:58:41.641Z",
       "updatedAt": "2026-03-04T11:58:41.641Z"
     },
-    "adversarial-review": {
-      "source": "poteto/noodle",
+    "playwright-interactive": {
+      "source": "openai/skills",
       "sourceType": "github",
-      "sourceUrl": "https://github.com/poteto/noodle.git",
-      "skillPath": ".agents/skills/adversarial-review/SKILL.md",
-      "skillFolderHash": "e0475ca099a636fa4050e78c5761354c65ac8a77",
-      "installedAt": "2026-03-06T03:56:50.179Z",
-      "updatedAt": "2026-03-10T11:56:02.382Z"
+      "sourceUrl": "https://github.com/openai/skills.git",
+      "skillPath": "skills/.curated/playwright-interactive/SKILL.md",
+      "skillFolderHash": "6d18386434d5cc0235d62e32ca4f7db8fc9813f6",
+      "installedAt": "2026-03-11T04:06:12.083Z",
+      "updatedAt": "2026-03-11T04:06:12.083Z"
+    },
+    "agent-manager": {
+      "source": "fractalmind-ai/agent-manager-skill",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/fractalmind-ai/agent-manager-skill.git",
+      "skillPath": "agent-manager/SKILL.md",
+      "skillFolderHash": "fba1c3bcea67580170ed8a5aad74fbf19bc48279",
+      "installedAt": "2026-03-11T12:58:49.437Z",
+      "updatedAt": "2026-03-11T12:58:49.437Z"
     }
   },
   "dismissed": {
