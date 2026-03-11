@@ -10,8 +10,8 @@ schedule: "After cook sessions that produce large diffs (200+ lines), implement 
 # Adversarial Review
 
 Spawn reviewers on the **opposite model** to challenge work. Reviewers attack from distinct
-lenses grounded in AGENTS.md conventions and review principles. The deliverable is a synthesized
-verdict — do NOT make changes.
+lenses grounded in brain principles. The deliverable is a synthesized verdict — do NOT make
+changes.
 
 **Hard constraint:** Reviewers MUST run via the opposite model's CLI (`codex exec` or
 `claude -p`). Do NOT use subagents, the Agent tool, or any internal delegation mechanism as
@@ -19,15 +19,8 @@ reviewers — those run on *your own* model, which defeats the purpose.
 
 ## Step 1 — Load Principles
 
-Gather review context from two sources:
-
-1. **AGENTS.md** — Glob for `**/AGENTS.md` in the repo root (exclude `.worktrees/`, `.venv/`,
-   `node_modules/`). Read each file. These define ownership, conventions, and boundaries that
-   reviewers must respect.
-2. **docs/**/principles.md** — Glob for `docs/**/principles.md`. Read each file. These are the
-   review principles that govern reviewer judgments.
-
-Concatenate the contents into a single `principles_context` block for reviewer prompts.
+Read `brain/principles.md`. Follow every `[[wikilink]]` and read each linked principle file.
+These govern reviewer judgments.
 
 ## Step 2 — Determine Scope and Intent
 
@@ -55,41 +48,26 @@ Create a temp directory for reviewer output:
 REVIEW_DIR=$(mktemp -d /tmp/adversarial-review.XXXXXX)
 ```
 
-Determine which model you are, then spawn reviewers on the opposite.
-
-Each reviewer runs in a **named tmux session** so the user can monitor progress in real time.
-Session naming: `review-<lens>` (e.g., `review-skeptic`, `review-architect`, `review-minimalist`).
+Determine which model you are, then spawn reviewers on the opposite:
 
 **If you are Claude** → spawn Codex reviewers via `codex exec`:
 
 ```sh
-tmux new-session -d -s review-skeptic \
-  "codex exec --skip-git-repo-check -o '$REVIEW_DIR/skeptic.md' 'prompt' 2>/dev/null"
+codex exec --skip-git-repo-check -o "$REVIEW_DIR/skeptic.md" "prompt" 2>/dev/null
 ```
 
 Use `--profile edit` only if the reviewer needs to run tests. Default to read-only.
+Run with `run_in_background: true`, monitor via `TaskOutput` with `block: true, timeout: 600000`.
 
 **If you are Codex** → spawn Claude reviewers via `claude` CLI:
 
 ```sh
-tmux new-session -d -s review-skeptic \
-  "claude -p 'prompt' > '$REVIEW_DIR/skeptic.md' 2>/dev/null"
+claude -p "prompt" > "$REVIEW_DIR/skeptic.md" 2>/dev/null
 ```
+
+Run with `run_in_background: true`.
 
 Name each output file after the lens: `skeptic.md`, `architect.md`, `minimalist.md`.
-
-Spawn all reviewer tmux sessions, then poll for completion:
-
-```sh
-# Wait until all review sessions finish (check every 15s, timeout 10min)
-TIMEOUT=600; ELAPSED=0
-while tmux list-sessions 2>/dev/null | grep -q '^review-'; do
-  sleep 15; ELAPSED=$((ELAPSED+15))
-  if [ $ELAPSED -ge $TIMEOUT ]; then echo "Review timed out"; break; fi
-done
-```
-
-The user can attach to any session to watch progress: `tmux attach -t review-skeptic`.
 
 ### Reviewer prompt template
 
@@ -103,6 +81,8 @@ Each reviewer gets a single prompt containing:
    validate the work. Be specific — cite files, lines, and concrete failure scenarios.
    Rate each finding: high (blocks ship), medium (should fix), low (worth noting).
    Write findings as a numbered markdown list to your output file."
+
+Spawn all reviewers in parallel.
 
 ## Step 4 — Verify and Synthesize Verdict
 
@@ -132,7 +112,7 @@ Produce a single verdict:
 For each finding:
 - **[severity]** Description with file:line references
 - Lens: which reviewer raised it
-- Principle: which review principle or AGENTS.md convention it maps to
+- Principle: which brain principle it maps to
 - Recommendation: concrete action, not vague advice
 
 ## What Went Well
@@ -146,7 +126,7 @@ For each finding:
 
 ## Step 5 — Render Judgment
 
-After synthesizing the reviewers, apply your own judgment. Using the stated intent and review
+After synthesizing the reviewers, apply your own judgment. Using the stated intent and brain
 principles as your frame, state which findings you would accept and which you would reject —
 and why. Reviewers are adversarial by design; not every finding warrants action. Call out
 false positives, overreach, and findings that mistake style for substance.
