@@ -316,6 +316,15 @@
       "skillFolderHash": "f3ee9d182d73053a1f0428f6e446db1fa9e4d780",
       "installedAt": "2026-03-11T04:06:12.083Z",
       "updatedAt": "2026-03-12T13:50:16.350Z"
+    },
+    "adversarial-review": {
+      "source": "poteto/noodle",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/poteto/noodle.git",
+      "skillPath": ".agents/skills/adversarial-review/SKILL.md",
+      "skillFolderHash": "e0475ca099a636fa4050e78c5761354c65ac8a77",
+      "installedAt": "2026-03-13T03:25:05.631Z",
+      "updatedAt": "2026-03-13T03:25:05.631Z"
     }
   },
   "dismissed": {
