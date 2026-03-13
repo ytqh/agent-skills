@@ -11,6 +11,8 @@ Challenge structural fitness. Ask:
 - What boundary violations exist? Where does responsibility leak between components?
 - What implicit assumptions about scale, concurrency, or ordering will break first?
 
+Map findings to: boundary-discipline, foundational-thinking, redesign-from-first-principles.
+
 ## Skeptic
 
 Challenge correctness and completeness. Ask:
@@ -21,6 +23,8 @@ Challenge correctness and completeness. Ask:
 - What does the author believe is true that isn't proven?
 - Where is "it works on my machine" masquerading as verification?
 
+Map findings to: prove-it-works, fix-root-causes, serialize-shared-state-mutations.
+
 ## Minimalist
 
 Challenge necessity and complexity. Ask:
@@ -30,3 +34,5 @@ Challenge necessity and complexity. Ask:
 - What abstractions exist for a single call site?
 - Where is configuration or flexibility added without a concrete second use case?
 - Is this the simplest possible path to the outcome, or is it the path that felt most thorough?
+
+Map findings to: subtract-before-you-add, outcome-oriented-execution, cost-aware-delegation.
