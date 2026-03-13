@@ -6,9 +6,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/brainstorming/SKILL.md",
-      "skillFolderHash": "c4b586a97565a90f7a95b1080ecbc49698ae7bc9",
+      "skillFolderHash": "cb55eef29a446656b39f38ead06b4ea7232ab227",
       "installedAt": "2026-01-26T07:36:15.332Z",
-      "updatedAt": "2026-03-11T03:45:14.446Z"
+      "updatedAt": "2026-03-12T13:49:38.302Z"
     },
     "context7": {
       "source": "intellectronica/agent-skills",
@@ -87,9 +87,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/dispatching-parallel-agents/SKILL.md",
-      "skillFolderHash": "7c90f50b6fe4631ed73563396a8f87a505915509",
+      "skillFolderHash": "ebd0490e6b0bccfdb9f9c0cc9dd6a066036c8d89",
       "installedAt": "2026-01-31T05:19:14.899Z",
-      "updatedAt": "2026-01-31T05:19:14.899Z"
+      "updatedAt": "2026-03-12T13:49:44.261Z"
     },
     "executing-plans": {
       "source": "obra/superpowers",
@@ -123,18 +123,18 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/requesting-code-review/SKILL.md",
-      "skillFolderHash": "c96076bf7ee813b9c5a2016ff3ece6bc0a628e03",
+      "skillFolderHash": "ed265b1a03114cc400d5524afc5c961a4aa9ea8b",
       "installedAt": "2026-01-31T05:19:16.140Z",
-      "updatedAt": "2026-03-11T03:45:25.827Z"
+      "updatedAt": "2026-03-12T13:49:50.336Z"
     },
     "subagent-driven-development": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/subagent-driven-development/SKILL.md",
-      "skillFolderHash": "c6793c453fe1d8e1a2efaf035f7333ca10be6ed9",
+      "skillFolderHash": "fbcd94ffcf589754a8ecfa59861cc8843313590e",
       "installedAt": "2026-01-31T05:19:16.406Z",
-      "updatedAt": "2026-03-11T03:45:31.854Z"
+      "updatedAt": "2026-03-12T13:49:56.317Z"
     },
     "systematic-debugging": {
       "source": "obra/superpowers",
@@ -186,9 +186,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/obra/superpowers.git",
       "skillPath": "skills/writing-plans/SKILL.md",
-      "skillFolderHash": "b0a9e38ac6696f9b628c4a8d0cd9f7c71afd9f47",
+      "skillFolderHash": "484c438ecee175aadad4f6caa1213c20d2a92c03",
       "installedAt": "2026-01-31T05:19:17.995Z",
-      "updatedAt": "2026-03-11T03:45:43.499Z"
+      "updatedAt": "2026-03-12T13:50:03.483Z"
     },
     "writing-skills": {
       "source": "obra/superpowers",
@@ -204,9 +204,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "ef3abe1fe6f259718037dc6131d332c7571292c3",
+      "skillFolderHash": "a29772f4b9de9cfeb4899824a4701c0441c79a4f",
       "installedAt": "2026-01-31T05:46:52.142Z",
-      "updatedAt": "2026-03-11T03:45:49.434Z"
+      "updatedAt": "2026-03-12T13:50:10.046Z"
     },
     "skill-creator": {
       "source": "anthropics/skills",
@@ -313,18 +313,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/openai/skills.git",
       "skillPath": "skills/.curated/playwright-interactive/SKILL.md",
-      "skillFolderHash": "6d18386434d5cc0235d62e32ca4f7db8fc9813f6",
+      "skillFolderHash": "f3ee9d182d73053a1f0428f6e446db1fa9e4d780",
       "installedAt": "2026-03-11T04:06:12.083Z",
-      "updatedAt": "2026-03-11T04:06:12.083Z"
-    },
-    "agent-manager": {
-      "source": "fractalmind-ai/agent-manager-skill",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/fractalmind-ai/agent-manager-skill.git",
-      "skillPath": "agent-manager/SKILL.md",
-      "skillFolderHash": "fba1c3bcea67580170ed8a5aad74fbf19bc48279",
-      "installedAt": "2026-03-11T12:58:49.437Z",
-      "updatedAt": "2026-03-11T12:58:49.437Z"
+      "updatedAt": "2026-03-12T13:50:16.350Z"
     }
   },
   "dismissed": {
