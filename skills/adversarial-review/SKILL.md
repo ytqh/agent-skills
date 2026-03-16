@@ -19,8 +19,19 @@ reviewers — those run on *your own* model, which defeats the purpose.
 
 ## Step 1 — Load Principles
 
-Read `brain/principles.md`. Follow every `[[wikilink]]` and read each linked principle file.
+Attempt to read `brain/principles.md`. Follow every `[[wikilink]]` and read each linked principle file.
 These govern reviewer judgments.
+
+Before proceeding, validate these resource paths:
+
+- `brain/principles.md`
+- `references/reviewer-lenses.md`
+
+Rules:
+
+- If `references/reviewer-lenses.md` is missing, stop and report the missing dependency.
+- If `brain/principles.md` is missing, do **not** stop the review. Record that principles
+  could not be loaded, continue with the lens-only review, and mention this limitation in the final verdict.
 
 ## Step 2 — Determine Scope and Intent
 
@@ -40,6 +51,22 @@ Assess change size:
 
 Read `references/reviewer-lenses.md` for lens definitions.
 
+### Scope Slicing Rule
+
+For large changes, do **not** automatically review every changed file together.
+First slice the review scope by intent.
+
+Examples:
+
+- If the intent is runtime correctness, prioritize code, migrations, and runtime tests.
+- If the intent is rollout safety, prioritize config, migrations, operational scripts, and trigger paths.
+- If the intent is maintainability for future strategy additions, prioritize the configuration model,
+  trigger fan-out path, and extension points.
+
+Avoid stuffing docs, plans, specs, generated files, and unrelated test churn into the same review scope unless they are directly relevant to the stated intent.
+
+If you exclude obvious files from scope, say so explicitly in the verdict.
+
 ## Step 3 — Detect Model and Spawn Reviewers
 
 Create a temp directory for reviewer output:
@@ -48,12 +75,35 @@ Create a temp directory for reviewer output:
 REVIEW_DIR=$(mktemp -d /tmp/adversarial-review.XXXXXX)
 ```
 
+## Step 3a — Prepare Review Inputs Before Spawning
+
+Always complete the preparation phase before starting any reviewer process.
+
+Prepare these files first:
+
+```sh
+git diff ... > "$REVIEW_DIR/diff.patch"
+cat > "$REVIEW_DIR/skeptic_prompt.txt" <<'EOF'
+...
+EOF
+cat > "$REVIEW_DIR/architect_prompt.txt" <<'EOF'
+...
+EOF
+cat > "$REVIEW_DIR/minimalist_prompt.txt" <<'EOF'
+...
+EOF
+```
+
+Only after all prompt files exist should you spawn reviewers.
+
+This avoids races where a reviewer starts before its prompt file has been fully written.
+
 Determine which model you are, then spawn reviewers on the opposite:
 
 **If you are Claude** → spawn Codex reviewers via `codex exec`:
 
 ```sh
-codex exec --skip-git-repo-check -o "$REVIEW_DIR/skeptic.md" "prompt" 2>/dev/null
+codex exec --skip-git-repo-check -o "$REVIEW_DIR/skeptic.md" - < "$REVIEW_DIR/skeptic_prompt.txt" 2>/dev/null
 ```
 
 Use `--profile edit` only if the reviewer needs to run tests. Default to read-only.
@@ -62,7 +112,7 @@ Run with `run_in_background: true`, monitor via `TaskOutput` with `block: true, 
 **If you are Codex** → spawn Claude reviewers via `claude` CLI:
 
 ```sh
-claude -p "prompt" > "$REVIEW_DIR/skeptic.md" 2>/dev/null
+claude -p < "$REVIEW_DIR/skeptic_prompt.txt" > "$REVIEW_DIR/skeptic.md" 2>/dev/null
 ```
 
 Run with `run_in_background: true`.
@@ -84,6 +134,18 @@ Each reviewer gets a single prompt containing:
 
 Spawn all reviewers in parallel.
 
+### Prompt Transport Rule
+
+Do **not** embed a large diff directly into the shell command argument string.
+Always feed prompts through stdin from prepared temp files.
+
+Reason:
+
+- avoids shell command-length limits
+- avoids quoting corruption on large diffs
+- makes retries reproducible
+- keeps the exact reviewer input inspectable in `REVIEW_DIR`
+
 ## Step 4 — Verify and Synthesize Verdict
 
 Before reading reviewer output, log which CLI was used and confirm the output files exist:
@@ -91,6 +153,14 @@ Before reading reviewer output, log which CLI was used and confirm the output fi
 ```sh
 echo "reviewer_cli=codex|claude"
 ls "$REVIEW_DIR"/*.md
+```
+
+Then verify each output file is non-empty:
+
+```sh
+for f in "$REVIEW_DIR"/*.md; do
+  [ -s "$f" ] || echo "empty_or_missing=$f"
+done
 ```
 
 If any output file is missing or empty, note the failure in the verdict — do not silently skip
@@ -130,6 +200,9 @@ After synthesizing the reviewers, apply your own judgment. Using the stated inte
 principles as your frame, state which findings you would accept and which you would reject —
 and why. Reviewers are adversarial by design; not every finding warrants action. Call out
 false positives, overreach, and findings that mistake style for substance.
+
+If `brain/principles.md` was unavailable, explicitly say that the lead judgment was rendered
+using the stated intent and reviewer lenses only.
 
 Append to the verdict:
 

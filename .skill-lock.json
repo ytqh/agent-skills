@@ -42,9 +42,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/skills.git",
       "skillPath": "skills/find-skills/SKILL.md",
-      "skillFolderHash": "c2f31172b6f256272305a5e6e7228b258446899f",
+      "skillFolderHash": "3013fdeb8a11b10b1eb795ec3ae8bfca38f7c26d",
       "installedAt": "2026-01-27T08:17:09.394Z",
-      "updatedAt": "2026-01-27T08:17:09.394Z"
+      "updatedAt": "2026-03-16T03:50:34.284Z"
     },
     "refactor": {
       "source": "github/awesome-copilot",
@@ -204,9 +204,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/vercel-labs/agent-browser.git",
       "skillPath": "skills/agent-browser/SKILL.md",
-      "skillFolderHash": "a29772f4b9de9cfeb4899824a4701c0441c79a4f",
+      "skillFolderHash": "9fa6850b305ad7237ffe61fc12f9e3d2d9c3d990",
       "installedAt": "2026-01-31T05:46:52.142Z",
-      "updatedAt": "2026-03-12T13:50:10.046Z"
+      "updatedAt": "2026-03-16T03:50:39.479Z"
     },
     "skill-creator": {
       "source": "anthropics/skills",
@@ -240,9 +240,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/el-feo/ai-context.git",
       "skillPath": "plugins/ruby-rails/skills/cucumber-gherkin/SKILL.md",
-      "skillFolderHash": "b1fde089c27550a6e3a985c3e8c84ddc6742840c",
+      "skillFolderHash": "067937557fac5d5b56a27f0b05de3dbade151285",
       "installedAt": "2026-02-06T09:14:35.853Z",
-      "updatedAt": "2026-02-06T09:14:35.853Z"
+      "updatedAt": "2026-03-16T03:50:44.857Z"
     },
     "threat-modeling-expert": {
       "source": "sickn33/antigravity-awesome-skills",
