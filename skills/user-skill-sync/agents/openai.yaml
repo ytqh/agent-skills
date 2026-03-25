@@ -1,0 +1,4 @@
+interface:
+  display_name: "User Skill Sync"
+  short_description: "Sync user skills across your devices"
+  default_prompt: "Use $user-skill-sync to audit or sync ~/.agents/skills across local, dev-server, and openclaw, then repair ~/.claude/skills symlinks if needed."
