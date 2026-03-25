@@ -39,3 +39,21 @@ description: "Create a GitHub pull request for current branch changes. Only use 
    - Success criteria:
      - the PR includes the target issue in `closingIssuesReferences`
      - the issue includes the PR in `closedByPullRequestsReferences`
+
+6. **Wait for CI checks and deployment** (after PR creation or push):
+   - Dispatch a **background subagent** to watch all CI checks and Railway deployments:
+     - Use `gh pr checks <pr_number> --watch` to block until all checks settle
+     - After watch completes, collect final status of all checks
+     - Check for Railway deployment completion by inspecting PR comments or status checks for deployment URLs
+   - When the subagent reports back:
+     - If **all checks pass** and deployment succeeded: report success with check summary and deployment URL
+     - If **any checks failed** or deployment failed: proceed to step 7
+
+7. **Fix failed checks loop** (automatic when failures detected):
+   - If any CI checks failed or deployment errors occurred:
+     - Invoke `/fix-pr-issues` skill directly — it handles: fetching failed checks + review comments, BDD-first spec updates if needed, planning, implementing fixes, pushing, and polling until green
+   - After `/fix-pr-issues` completes:
+     - If all checks are now green: done
+     - If checks still fail or new review issues appeared: re-invoke `/fix-pr-issues` (loop)
+   - **Max loop iterations:** 3 — if still failing after 3 rounds, report the remaining failures to the user and stop
+   - **Do not** attempt to fix `temporal-idle-gate` failures (this check is excluded from required checks)

@@ -325,6 +325,33 @@
       "skillFolderHash": "e0475ca099a636fa4050e78c5761354c65ac8a77",
       "installedAt": "2026-03-13T03:25:05.631Z",
       "updatedAt": "2026-03-13T03:25:05.631Z"
+    },
+    "read-arxiv-paper": {
+      "source": "karpathy/nanochat",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/karpathy/nanochat.git",
+      "skillPath": ".claude/skills/read-arxiv-paper/SKILL.md",
+      "skillFolderHash": "8c9a9e975e0a51c0cb6352943c398f6ab4618280",
+      "installedAt": "2026-03-18T03:16:46.292Z",
+      "updatedAt": "2026-03-18T03:16:46.292Z"
+    },
+    "github-deep-research": {
+      "source": "bytedance/deer-flow",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/bytedance/deer-flow.git",
+      "skillPath": "skills/public/github-deep-research/SKILL.md",
+      "skillFolderHash": "d3215f3fae6202d7bc642fccf154c89ff72f1060",
+      "installedAt": "2026-03-20T10:35:42.004Z",
+      "updatedAt": "2026-03-20T10:35:42.004Z"
+    },
+    "build-dashboard": {
+      "source": "anthropics/knowledge-work-plugins",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthropics/knowledge-work-plugins.git",
+      "skillPath": "data/skills/build-dashboard/SKILL.md",
+      "skillFolderHash": "d4f3d89170f0e6fcab49cf28bab08d15d153c7c5",
+      "installedAt": "2026-03-23T03:55:51.681Z",
+      "updatedAt": "2026-03-23T03:55:51.681Z"
     }
   },
   "dismissed": {
