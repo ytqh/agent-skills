@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cross-Agent Skill Audit"
+  short_description: "Audit skills for Codex/Claude portability"
+  default_prompt: "Use $cross-agent-skill-audit to scan this repo and my user skills for Codex vs Claude Code portability gaps, list the needed fixes with reasons, and wait for approval before editing."

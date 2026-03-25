@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anthropic Docs"
+  short_description: "Official Anthropic docs for Claude Code and Agent SDK"
+  default_prompt: "Use $anthropic-docs to answer Claude Code, Agent SDK, Anthropic API, or model questions from current official Anthropic docs, following redirects and citing the final canonical page."
