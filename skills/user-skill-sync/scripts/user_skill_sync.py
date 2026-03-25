@@ -460,7 +460,10 @@ def remote_shell(device, command):
     ssh = DEVICE_CONFIG[device]["ssh"]
     if ssh is None:
         return run_process(["bash", "-lc", command])
-    return run_process([*ssh, "bash", "-lc", command])
+    # ssh joins remote argv into a shell string, so the bash -lc payload must
+    # be shell-quoted here or the remote side will see `bash -lc git ...` and
+    # execute bare `git` instead of the full command string.
+    return run_process([*ssh, "bash", "-lc", shlex.quote(command)])
 
 
 def git_on_device(device, args):
