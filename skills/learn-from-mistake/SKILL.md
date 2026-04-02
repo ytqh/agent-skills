@@ -85,8 +85,9 @@ Present the extracted patterns as a numbered list. For each pattern:
 **What happened:** Claude did X
 **User correction:** "actual user quote"
 **Lesson:** Do Y instead of X because Z
-**Scope:** [project-specific | workspace-wide | general behavior]
-**Suggested action:** [memory | skill update | both | skip]
+**Scope:** [project-specific | cross-project | general behavior]
+**Suggested action:** [workspace AGENTS.md | generic memory | skill update | both | skip]
+**Target:** [e.g., workspace/bounce/AGENTS.md | memory/feedback_xxx.md | skill-name]
 ```
 
 Group related corrections together — if the user corrected the same thing 3
@@ -94,30 +95,54 @@ times across sessions, that's one pattern with strong signal, not three separate
 ones.
 
 After presenting, ask the user:
-> "For each pattern, I can: (a) save it as a memory so I remember next time,
-> (b) update a specific skill, or (c) skip it. What would you like to do?"
+> "For each pattern, I can: (a) save it to the relevant workspace AGENTS.md,
+> (b) save as generic memory, (c) update a specific skill, or (d) skip it.
+> What would you like to do?"
 
 The user may respond per-pattern or give a blanket instruction.
 
 ### Step 5 — Persist the lessons
 
-#### Option A: Save as memory
+#### Option A: Save as project/workspace knowledge
 
-Determine the right memory type based on the pattern:
+Lessons belong where they'll be seen next time the relevant context is active.
+The personal-assistant repo organizes knowledge by workspace — each project has
+its own `AGENTS.md` that Claude reads when working in that context.
 
-| Pattern scope | Memory type | Example |
-|---|---|---|
-| How to approach work | `feedback` | "Don't mock the DB in integration tests" |
-| User preferences/role | `user` | "User prefers terse output, no summaries" |
-| Project context | `project` | "Auth rewrite is compliance-driven, not tech debt" |
-| External resource pointer | `reference` | "Pipeline bugs tracked in Linear INGEST project" |
+**Placement rules (in priority order):**
 
-Write the memory file following the established format:
+1. **Project-specific lesson** → append to that workspace's `AGENTS.md`.
+   The personal-assistant repo has workspaces at `workspace/<project>/AGENTS.md`
+   (e.g., `workspace/bounce/AGENTS.md`, `workspace/jim/AGENTS.md`). If the
+   lesson is about Bounce data analysis, it goes in `workspace/bounce/AGENTS.md`
+   — not in a generic memory file.
+
+2. **Cross-project / general behavior lesson** → save as a memory file in
+   `~/.claude/projects/-Users-aki-Projects-personal-assistant/memory/` and
+   update `MEMORY.md`.
+
+3. **Skill-specific lesson** → update the skill directly (see Option B).
+
+**When appending to AGENTS.md**, group related lessons under a section header
+(create one if it doesn't exist). Use bullet-point format with a bold label,
+the rule, and a brief origin note:
+
+```markdown
+## Lessons Learned (from [context], [date])
+
+- **[Bold label]**: [The rule or pattern to follow]. Origin: [brief description
+  of what went wrong and when].
+```
+
+Check the existing AGENTS.md first — if a related lesson is already there,
+update it rather than adding a duplicate.
+
+**When saving to generic memory**, use the standard frontmatter format:
 
 ```markdown
 ---
 name: [descriptive-kebab-case-name]
-description: [one-line description — specific enough to judge relevance later]
+description: [one-line — specific enough to judge relevance later]
 type: [feedback|user|project|reference]
 ---
 
@@ -127,18 +152,7 @@ type: [feedback|user|project|reference]
 **How to apply:** [When and where this guidance kicks in]
 ```
 
-Save to the appropriate memory directory. The default is the personal-assistant
-project memory at:
-`~/.claude/projects/-Users-aki-Projects-personal-assistant/memory/`
-
-But if the pattern is specific to a different project, check whether that
-project has its own memory directory under `~/.claude/projects/` and save there
-instead.
-
-After writing the memory file, update `MEMORY.md` with a one-line index entry.
-
-Before writing, always check existing memories to avoid duplicates — if a
-related memory exists, update it rather than creating a new one.
+After writing, update `MEMORY.md` with a one-line index entry.
 
 #### Option B: Update a skill
 
@@ -163,8 +177,9 @@ No action needed — the correction was situational and doesn't generalize.
 
 After all patterns are processed, give a brief summary:
 - N patterns found
-- M saved as memories (list which)
-- K applied as skill updates (list which)
+- M saved to workspace AGENTS.md (list which workspace + lesson)
+- P saved as generic memory (list which)
+- K applied as skill updates (list which skill)
 - J skipped
 
 ## Edge cases
@@ -181,6 +196,7 @@ After all patterns are processed, give a brief summary:
   across sessions (e.g., "be more verbose" then "be more concise"), flag the
   contradiction and ask the user which one to persist.
 
-- **Already-saved lessons:** Cross-reference against existing memories. If a
-  pattern is already captured, tell the user: "This is already saved in
-  [memory-name] — want me to update it with the new context?"
+- **Already-saved lessons:** Cross-reference against existing workspace
+  AGENTS.md files and generic memories. If a pattern is already captured, tell
+  the user: "This is already saved in [location] — want me to update it with
+  the new context?"
