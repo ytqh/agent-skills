@@ -1,0 +1,25 @@
+{
+  "expectations": [
+    {
+      "text": "The response uses status.openai.com as the official source for Codex/OpenAI.",
+      "passed": true,
+      "evidence": "The response explicitly cites `https://status.openai.com/` in the sources section."
+    },
+    {
+      "text": "The response distinguishes Codex-specific impact from broader OpenAI status when possible.",
+      "passed": true,
+      "evidence": "The response notes that the page is broadly operational and separately states that the `Codex` section shows `100% uptime`."
+    },
+    {
+      "text": "The response does not report resolved history as an active incident.",
+      "passed": true,
+      "evidence": "The response reports `Active incidents: none` and does not use history entries as evidence of a current outage."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  }
+}

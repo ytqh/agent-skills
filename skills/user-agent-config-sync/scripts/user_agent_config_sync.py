@@ -132,6 +132,18 @@ def json_text(data: dict) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
+def quote_toml_key(key: str) -> str:
+    """Quote a TOML key if it contains characters not allowed in bare keys.
+
+    TOML bare keys may only contain ASCII letters, digits, dashes, and
+    underscores.  Keys with dots, spaces, or other characters must be quoted
+    to avoid being misinterpreted as dotted (nested) keys.
+    """
+    if re.match(r'^[A-Za-z0-9_-]+$', key):
+        return key
+    return json.dumps(key)
+
+
 def format_toml_value(value):
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -157,9 +169,9 @@ def emit_toml_table(lines: list[str], prefix: list[str], mapping: dict) -> None:
             scalar_items.append((key, value))
 
     if prefix:
-        lines.append(f"[{'.'.join(prefix)}]")
+        lines.append(f"[{'.'.join(quote_toml_key(p) for p in prefix)}]")
     for key, value in scalar_items:
-        lines.append(f"{key} = {format_toml_value(value)}")
+        lines.append(f"{quote_toml_key(key)} = {format_toml_value(value)}")
 
     child_blocks = []
     for key, value in table_items:
@@ -168,11 +180,11 @@ def emit_toml_table(lines: list[str], prefix: list[str], mapping: dict) -> None:
         child_blocks.append(child_lines)
     for key, items in array_table_items:
         for item in items:
-            child_lines = [f"[[{'.'.join(prefix + [key])}]]"]
+            child_lines = [f"[[{'.'.join(quote_toml_key(p) for p in prefix + [key])}]]"]
             for child_key, child_value in item.items():
                 if isinstance(child_value, dict):
                     raise TypeError("Nested dict inside array-of-tables is not supported")
-                child_lines.append(f"{child_key} = {format_toml_value(child_value)}")
+                child_lines.append(f"{quote_toml_key(child_key)} = {format_toml_value(child_value)}")
             child_blocks.append(child_lines)
 
     if scalar_items and child_blocks:

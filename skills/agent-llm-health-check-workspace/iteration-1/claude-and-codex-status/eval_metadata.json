@@ -1,0 +1,10 @@
+{
+  "eval_id": 3,
+  "eval_name": "claude-and-codex-status",
+  "prompt": "顺便一起确认 Claude 和 Codex 现在有没有官方故障，只看官方状态页",
+  "assertions": [
+    "The response checks both Claude and Codex/OpenAI rather than only one provider.",
+    "The response labels the two providers separately.",
+    "The response stays within official status-page evidence only."
+  ]
+}
