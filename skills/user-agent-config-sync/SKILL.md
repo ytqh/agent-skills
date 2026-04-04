@@ -1,13 +1,13 @@
 ---
 name: user-agent-config-sync
-description: Synchronize the user-level Codex and Claude config across `local-mac`, `dev-server`, and `openclaw`, using `local-mac` as the default source, with mandatory backups before any write and an explicit user approval checkpoint after review. Use this whenever the user asks to keep these machines' agent config aligned, sync `codex`/`claude` settings, mirror TUI or feature settings, or says things like "同步 agent 配置", "sync codex config", "keep Claude settings consistent", or "先看 diff 再同步". This skill intentionally excludes skills and MCP config.
+description: Use when the user wants Codex or Claude settings kept aligned across `local-mac`, `dev-server`, and `openclaw`, or wants Claude Code / Codex CLI versions reviewed or upgraded on all three machines. This skill keeps MCP and skills out of scope while backing up targets before apply and requiring explicit approval after review.
 ---
 
 # User Agent Config Sync
 
 Use this skill from `local-mac` unless the user explicitly wants a single-host manual check.
 
-The purpose is narrow: keep the user-level Codex and Claude config on `local`, `dev-server`, and `openclaw` consistent for the managed subset, while leaving skill installation and MCP wiring alone.
+The purpose is narrow: keep the user-level Codex and Claude config on `local`, `dev-server`, and `openclaw` consistent for the managed subset, and manage `codex` / `Claude Code` CLI version drift across those same machines, while leaving skill installation and MCP wiring alone.
 
 ## Device Map
 
@@ -17,7 +17,12 @@ The purpose is narrow: keep the user-level Codex and Claude config on `local`, `
 
 ## Managed Scope
 
-The helper script syncs only the stable config subset that should match across the two Linux hosts.
+The helper script manages two separate subsets:
+
+1. stable user config that should stay aligned across the fleet
+2. `codex` / `Claude Code` CLI versions that should be reviewed and upgraded together across all three machines
+
+Config remains source-driven from `local`. Tool versions do not follow `local`; they follow the current stable npm release.
 
 ### Codex
 
@@ -60,6 +65,27 @@ Excluded keys and files:
 
 If the managed Claude `statusLine.command` references a script inside `~/.claude/`, sync that script too. Rewrite the source home prefix to the target home prefix so `dev-server` paths do not leak into `openclaw`.
 
+### Managed Tool Versions
+
+Managed CLIs:
+- `codex` (`@openai/codex`)
+- `Claude Code` (`@anthropic-ai/claude-code` or native `claude install` layout)
+
+Version policy:
+- Treat the current stable npm release as the target version for all three machines.
+- `review` must show the installed version, install method, target stable version, and exact upgrade command per machine.
+- `sync --apply` must upgrade only machines that are behind.
+
+Install-method handling:
+- `codex`: upgrade via global npm install on all machines
+- `Claude Code`:
+  - if the binary resolves into `~/.local/share/claude/versions/...`, upgrade with `claude install <version> --force`
+  - if the binary resolves into global npm `node_modules`, upgrade with `npm install -g @anthropic-ai/claude-code@<version>`
+
+Backups for tool upgrades:
+- Before any tool upgrade, write a pre-upgrade tool-state manifest into the backup root on that machine.
+- After apply, re-check versions and fail the run if a machine does not land on the target version.
+
 ## Defaults
 
 - Default source: `local`
@@ -72,6 +98,7 @@ If the managed Claude `statusLine.command` references a script inside `~/.claude
 - Always run a dry-run audit before applying changes.
 - Always review all three machines before applying changes.
 - Always back up the target before writing.
+- Always back up a pre-upgrade tool-state manifest before running CLI upgrades.
 - Always summarize what will change after sync and wait for explicit user approval before `--apply`.
 - Do not sync in reverse unless the user explicitly says so.
 - Do not touch `~/.agents/skills`, `~/.claude/skills`, or `~/.codex/skills`.
@@ -96,6 +123,7 @@ The review must cover:
 - target changes for `dev-server`
 - target changes for `openclaw`
 - which files will be backed up and overwritten
+- which tool upgrades would run on `local`, `dev-server`, and `openclaw`
 
 3. If approved, sync with backup.
 
@@ -117,11 +145,11 @@ python3 ~/.agents/skills/user-agent-config-sync/scripts/user_agent_config_sync.p
 ## Commands
 
 - `status [--source ...] [--target ...]`
-  Show the managed subset diff for Codex and Claude without writing anything.
+  Show config drift plus tool-version drift for one source/target pair without writing anything.
 - `review [--source ...] [--targets ...]`
-  Show source normalization drift plus target diffs for all selected machines, and print the planned file updates that would happen after approval.
+  Show source normalization drift plus target diffs for all selected machines, and print both planned file updates and planned CLI upgrades that would happen after approval.
 - `sync [--source ...] [--target ...] [--apply]`
-  Back up each changed machine, sync the managed subset, and print the backup path. Without `--apply`, this stays a dry run.
+  Back up each changed machine, sync the managed config subset, upgrade outdated CLIs, and print the backup path. Without `--apply`, this stays a dry run.
 
 ## Notes
 

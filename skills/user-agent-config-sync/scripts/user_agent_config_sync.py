@@ -62,6 +62,11 @@ REQUIRED_CLAUDE_ENABLED_PLUGINS = {
     "pyright-lsp@claude-plugins-official": True,
 }
 STATUSLINE_PATTERN = re.compile(r"(/(?:home|Users)/[^/\s\"']+/.claude/[^\s\"']+)")
+VERSION_PATTERN = re.compile(r"(\d+\.\d+\.\d+)")
+TOOL_PACKAGES = {
+    "codex": "@openai/codex",
+    "claude": "@anthropic-ai/claude-code",
+}
 
 
 def expand_home(device_name: str, path: str) -> str:
@@ -130,6 +135,128 @@ def backup_file(device_name: str, src_path: str, backup_root: str) -> None:
 
 def json_text(data: dict) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+
+
+def parse_version(text: str) -> str | None:
+    match = VERSION_PATTERN.search(text)
+    if not match:
+        return None
+    return match.group(1)
+
+
+def latest_tool_versions() -> dict[str, str]:
+    versions: dict[str, str] = {}
+    for tool_name, package_name in TOOL_PACKAGES.items():
+        result = subprocess.run(
+            ["npm", "view", package_name, "version"],
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        version = result.stdout.strip()
+        if not version:
+            raise RuntimeError(f"Could not determine latest version for {package_name}")
+        versions[tool_name] = version
+    return versions
+
+
+def gather_tool_state(device_name: str) -> dict:
+    script = """python3 - <<'PY'
+import json
+import os
+import shutil
+import subprocess
+
+
+def run(args):
+    result = subprocess.run(args, text=True, capture_output=True)
+    return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+
+def detect(tool_name):
+    path = shutil.which(tool_name) or ""
+    resolved = os.path.realpath(path) if path else ""
+    version = None
+    raw_version = ""
+    if path:
+        code, stdout, stderr = run([tool_name, "--version"])
+        raw_version = stdout or stderr
+        if code == 0:
+            import re
+            match = re.search(r"(\\d+\\.\\d+\\.\\d+)", raw_version)
+            if match:
+                version = match.group(1)
+
+    install_method = "unknown"
+    if tool_name == "codex":
+        if "/node_modules/@openai/codex/" in resolved:
+            install_method = "npm-global"
+    elif tool_name == "claude":
+        if "/.local/share/claude/versions/" in resolved:
+            install_method = "native"
+        elif "/node_modules/@anthropic-ai/claude-code/" in resolved:
+            install_method = "npm-global"
+
+    return {
+        "path": path,
+        "resolved_path": resolved,
+        "version": version,
+        "raw_version": raw_version,
+        "install_method": install_method,
+    }
+
+
+_, npm_prefix, _ = run(["npm", "config", "get", "prefix"])
+print(json.dumps({
+    "npm_prefix": npm_prefix,
+    "tools": {
+        "codex": detect("codex"),
+        "claude": detect("claude"),
+    },
+}))
+PY"""
+    result = run_device(device_name, script)
+    return json.loads(result.stdout)
+
+
+def build_tool_plan(device_name: str, stable_versions: dict[str, str]) -> dict:
+    state = gather_tool_state(device_name)
+    plan = {
+        "device": device_name,
+        "npm_prefix": state.get("npm_prefix"),
+        "stable_versions": stable_versions,
+        "tools": {},
+        "raw_state": state,
+    }
+    for tool_name, stable_version in stable_versions.items():
+        tool_state = state["tools"][tool_name]
+        installed = tool_state.get("version")
+        install_method = tool_state.get("install_method")
+        upgrade_command = None
+        issue = None
+        if tool_name == "codex":
+            upgrade_command = f"npm install -g {TOOL_PACKAGES[tool_name]}@{stable_version}"
+        elif tool_name == "claude":
+            if install_method == "native":
+                upgrade_command = f"claude install {stable_version} --force"
+            elif install_method == "npm-global":
+                upgrade_command = f"npm install -g {TOOL_PACKAGES[tool_name]}@{stable_version}"
+            else:
+                issue = "unsupported install method"
+
+        needs_upgrade = installed != stable_version
+        plan["tools"][tool_name] = {
+            "installed_version": installed,
+            "stable_version": stable_version,
+            "install_method": install_method,
+            "path": tool_state.get("path"),
+            "resolved_path": tool_state.get("resolved_path"),
+            "raw_version": tool_state.get("raw_version"),
+            "needs_upgrade": needs_upgrade,
+            "upgrade_command": upgrade_command,
+            "issue": issue,
+        }
+    return plan
 
 
 def quote_toml_key(key: str) -> str:
@@ -298,7 +425,7 @@ def unified_diff(label: str, current_text: str, expected_text: str) -> str:
     return "\n".join(lines)
 
 
-def plan_sync(source_name: str, target_name: str) -> dict:
+def plan_sync(source_name: str, target_name: str, stable_versions: dict[str, str]) -> dict:
     source_codex = read_text(source_name, "~/.codex/config.toml")
     target_codex = read_text(target_name, "~/.codex/config.toml")
     source_claude = read_text(source_name, "~/.claude/settings.json")
@@ -332,10 +459,11 @@ def plan_sync(source_name: str, target_name: str) -> dict:
             "expected": expected_claude,
         },
         "statusline_script": aux_payload,
+        "tool_versions": build_tool_plan(target_name, stable_versions),
     }
 
 
-def plan_source_normalization(source_name: str) -> dict:
+def plan_source_normalization(source_name: str, stable_versions: dict[str, str]) -> dict:
     source_codex = read_text(source_name, "~/.codex/config.toml")
     source_claude = read_text(source_name, "~/.claude/settings.json")
     expected_claude, aux_sync = merged_claude_config(
@@ -365,6 +493,7 @@ def plan_source_normalization(source_name: str) -> dict:
             "expected": expected_claude,
         },
         "statusline_script": aux_payload,
+        "tool_versions": build_tool_plan(source_name, stable_versions),
     }
 
 
@@ -380,7 +509,29 @@ def collect_actions(plan: dict) -> list[str]:
         current_script = read_text(plan["target"], target_path) if exists(plan["target"], target_path) else ""
         if current_script != script_text:
             actions.append(f"update {target_path}")
+
+    tool_plan = plan["tool_versions"]
+    for tool_name, details in tool_plan["tools"].items():
+        if not details["needs_upgrade"]:
+            continue
+        if details["upgrade_command"] is None:
+            actions.append(
+                f"manual intervention for {tool_name} on {plan['target']}: {details['issue'] or 'missing upgrade command'}"
+            )
+            continue
+        current = details["installed_version"] or "missing"
+        actions.append(
+            f"upgrade {tool_name} on {plan['target']} from {current} to {details['stable_version']} via {details['upgrade_command']}"
+        )
     return actions
+
+
+def tool_manifest_path(backup_root: str, phase: str) -> str:
+    return f"{backup_root}/tool-state-{phase}.json"
+
+
+def write_tool_manifest(device_name: str, backup_root: str, phase: str, payload: dict) -> None:
+    write_text(device_name, tool_manifest_path(backup_root, phase), json_text(payload))
 
 
 def print_plan(plan: dict, *, heading: str | None = None) -> bool:
@@ -415,6 +566,21 @@ def print_plan(plan: dict, *, heading: str | None = None) -> bool:
                     script_text,
                 )
             )
+
+    print("tool-versions:")
+    for tool_name, details in plan["tool_versions"]["tools"].items():
+        installed = details["installed_version"] or "missing"
+        stable = details["stable_version"]
+        method = details["install_method"]
+        if not details["needs_upgrade"]:
+            print(f"  {tool_name}: in-sync ({installed}, method={method})")
+            continue
+        has_diff = True
+        print(f"  {tool_name}: upgrade needed ({installed} -> {stable}, method={method})")
+        if details["upgrade_command"] is not None:
+            print(f"    command: {details['upgrade_command']}")
+        if details["issue"] is not None:
+            print(f"    issue: {details['issue']}")
     actions = collect_actions(plan)
     if actions:
         print("planned-actions:")
@@ -430,6 +596,7 @@ def print_status(plan: dict) -> int:
 
 
 def review(source_name: str, targets: list[str]) -> int:
+    stable_versions = latest_tool_versions()
     seen = set()
     ordered_targets = []
     for target in targets:
@@ -439,13 +606,17 @@ def review(source_name: str, targets: list[str]) -> int:
         ordered_targets.append(target)
 
     has_diff = False
-    source_plan = plan_source_normalization(source_name)
+    print("stable-tool-versions:")
+    for tool_name, version in stable_versions.items():
+        print(f"  {tool_name}: {version}")
+    print("")
+    source_plan = plan_source_normalization(source_name, stable_versions)
     print("== Source Normalization Review ==")
     has_diff = print_plan(source_plan) or has_diff
     for target in ordered_targets:
         print("")
         print(f"== Target Review: {target} ==")
-        target_plan = plan_sync(source_name, target)
+        target_plan = plan_sync(source_name, target, stable_versions)
         has_diff = print_plan(target_plan) or has_diff
     return 1 if has_diff else 0
 
@@ -488,6 +659,30 @@ def sync(plan: dict, apply: bool) -> int:
                     backup_file(plan["target"], target_path, backup_root)
                 write_text(plan["target"], target_path, script_text)
 
+    tool_actions = [details for details in plan["tool_versions"]["tools"].values() if details["needs_upgrade"]]
+    if apply and tool_actions:
+        write_tool_manifest(plan["target"], backup_root, "pre", plan["tool_versions"]["raw_state"])
+        for tool_name, details in plan["tool_versions"]["tools"].items():
+            if not details["needs_upgrade"]:
+                continue
+            if details["upgrade_command"] is None:
+                raise RuntimeError(
+                    f"Cannot upgrade {tool_name} on {plan['target']}: {details['issue'] or 'missing upgrade command'}"
+                )
+            run_device(plan["target"], details["upgrade_command"])
+
+        verified_tools = build_tool_plan(plan["target"], plan["tool_versions"]["stable_versions"])
+        remaining = [
+            tool_name
+            for tool_name, details in verified_tools["tools"].items()
+            if details["needs_upgrade"]
+        ]
+        write_tool_manifest(plan["target"], backup_root, "post", verified_tools["raw_state"])
+        if remaining:
+            raise RuntimeError(
+                f"Tool upgrades incomplete on {plan['target']}: {', '.join(sorted(remaining))}"
+            )
+
     print(f"source={plan['source']} target={plan['target']} apply={'yes' if apply else 'no'}")
     if not actions:
         print("actions: none; managed subset already in sync")
@@ -505,6 +700,7 @@ def sync(plan: dict, apply: bool) -> int:
 
 
 def sync_many(source_name: str, targets: list[str], apply: bool) -> int:
+    stable_versions = latest_tool_versions()
     seen = set()
     ordered_targets = []
     for target in targets:
@@ -513,7 +709,10 @@ def sync_many(source_name: str, targets: list[str], apply: bool) -> int:
         seen.add(target)
         ordered_targets.append(target)
 
-    plans = [plan_source_normalization(source_name), *[plan_sync(source_name, target) for target in ordered_targets]]
+    plans = [
+        plan_source_normalization(source_name, stable_versions),
+        *[plan_sync(source_name, target, stable_versions) for target in ordered_targets],
+    ]
     for index, plan in enumerate(plans):
         if index:
             print("")
@@ -556,7 +755,7 @@ def main() -> int:
             parser.error("status accepts exactly one target")
         if args.source == targets[0]:
             parser.error("--source and --target must differ for status")
-        plan = plan_sync(args.source, targets[0])
+        plan = plan_sync(args.source, targets[0], latest_tool_versions())
         return print_status(plan)
     if args.command == "review":
         return review(args.source, targets)
