@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "successful-session-no-false-positive",
+  "prompt": "I want to verify that the health check cron is working correctly now. The latest successful session transcript is at /tmp/health-success-session.jsonl. Analyze it and tell me if there are any execution issues, and separately report the business-level findings.",
+  "assertions": [
+    {"text": "Reports NO execution failure patterns (no false positives for E1/E2/E3/E4)", "type": "qualitative"},
+    {"text": "Notes proper poll timeouts (180000ms, 60000ms) as correct behavior", "type": "qualitative"},
+    {"text": "Uses parse_session.py script from skill bundle (not ad-hoc parsing)", "type": "behavioral"},
+    {"text": "Identifies business findings: UNHEALTHY verdict, duplicate schedules from captured output", "type": "qualitative"},
+    {"text": "Correctly separates execution health (good) from business health (issues found)", "type": "qualitative"}
+  ]
+}

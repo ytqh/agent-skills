@@ -1,0 +1,12 @@
+{
+  "eval_id": 1,
+  "eval_name": "polling-timeout-failure",
+  "prompt": "The bounce strategy analysis cron ran for 132 seconds but produced no useful output. The summary says the analysis was 'still running' when captured. Session transcript is at /tmp/strategy-test2.jsonl. What went wrong?",
+  "assertions": [
+    {"text": "Identifies E3 pattern: sleep commands started but never blocked on (fire-and-forget)", "type": "qualitative"},
+    {"text": "Notes all 12 process poll calls use timeout=1000ms which is too short", "type": "qualitative"},
+    {"text": "Uses parse_session.py script from skill bundle (not ad-hoc parsing)", "type": "behavioral"},
+    {"text": "Recommends replacing tmux with claude -p mode OR combining sleep into SSH commands", "type": "qualitative"},
+    {"text": "Classifies as execution failure (E3), not business failure", "type": "qualitative"}
+  ]
+}

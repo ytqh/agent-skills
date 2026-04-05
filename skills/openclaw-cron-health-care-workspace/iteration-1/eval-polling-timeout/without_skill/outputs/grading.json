@@ -1,0 +1,29 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies E3 pattern: sleep commands started but never blocked on (fire-and-forget)",
+      "passed": true,
+      "evidence": "Section title: 'yieldMs Defeated All Sleep/Wait Commands'. Explicitly states: 'The agent never waited for its own sleep commands to finish.' The table shows sleep 300 with 'Expected wait: 300s, Actual wait: ~1s yield, then abandoned'. Pattern is correctly identified though not labeled as 'E3'."
+    },
+    {
+      "text": "Notes all 12 process poll calls use timeout=1000ms which is too short",
+      "passed": false,
+      "evidence": "The report focuses on yieldMs: 1000 as the issue rather than process poll timeout. It states 'every exec call used yieldMs: 1000' and describes polling once then moving on, but does not explicitly count 12 process poll calls or note timeout=1000ms on the poll calls themselves. The framing is about yieldMs on exec, not timeout on process poll."
+    },
+    {
+      "text": "Uses parse_session.py script from skill bundle (not ad-hoc parsing)",
+      "passed": false,
+      "evidence": "Without-skill run — the agent does not have access to the skill bundle and therefore cannot use parse_session.py. Analysis was performed through ad-hoc transcript reading."
+    },
+    {
+      "text": "Recommends replacing tmux with claude -p mode OR combining sleep into SSH commands",
+      "passed": false,
+      "evidence": "Recommended fixes include: (1) fixing polling loop in cron prompt, (2) using yieldMs: 0 or high value, (3) adding completion-detection instructions, (4) using a single blocking exec like 'sleep 300 && ssh dev-server \"tmux capture-pane ...\"', (5) increasing cron timeout. Does not recommend replacing tmux with 'claude -p' mode. Fix #4 partially matches 'combining sleep into SSH' but is framed differently (sleep then capture, not replacing the tmux approach)."
+    },
+    {
+      "text": "Classifies as execution failure (E3), not business failure",
+      "passed": true,
+      "evidence": "The entire report is about execution-level failure. States 'No useful output. The agent reported the analysis was \"still running\" and killed the tmux session prematurely.' Does not misclassify as a business failure. Does not use E3 label but correctly identifies this as an execution problem."
+    }
+  ]
+}
