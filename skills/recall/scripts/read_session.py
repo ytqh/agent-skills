@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-"""Pretty-print a Claude Code or Codex session transcript."""
+"""Pretty-print a Claude Code, Codex, or OpenCode session transcript."""
 
 import json
+import sqlite3
 import sys
+from pathlib import Path
 
 TEXT_BLOCK_TYPES = {"text", "input_text", "output_text"}
 
 SKIP_MARKERS = (
-    "<user_instructions>", "<environment_context>",
-    "<permissions instructions>", "# AGENTS.md instructions",
+    "<user_instructions>",
+    "<environment_context>",
+    "<permissions instructions>",
+    "# AGENTS.md instructions",
 )
+
+OPENCODE_DB_PATH = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
 
 
 def extract_text(content):
@@ -26,9 +32,13 @@ def extract_text(content):
     return ""
 
 
-def iter_messages(path):
+def iter_messages(path, session_id=None):
     """Yield (role, text) pairs from a session file, auto-detecting format."""
     fmt = detect_format(path)
+
+    if fmt == "opencode" and session_id:
+        yield from iter_opencode_messages(session_id)
+        return
 
     with open(path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -89,7 +99,11 @@ def iter_messages(path):
 
 
 def detect_format(path):
-    """Detect whether a session file is Claude Code or Codex format."""
+    """Detect whether a session file is Claude Code, Codex, or OpenCode format."""
+    # Check if path is the OpenCode database path
+    if Path(path) == OPENCODE_DB_PATH:
+        return "opencode"
+
     with open(path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
@@ -111,20 +125,72 @@ def detect_format(path):
     return "claude"
 
 
+def iter_opencode_messages(session_id):
+    """Yield (role, text) pairs from an OpenCode session stored in SQLite."""
+    if not OPENCODE_DB_PATH.exists():
+        return
+
+    try:
+        conn = sqlite3.connect(f"file:{OPENCODE_DB_PATH}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+
+        rows = conn.execute(
+            "SELECT data FROM message WHERE session_id = ? ORDER BY time_created",
+            (session_id,),
+        ).fetchall()
+
+        for row in rows:
+            try:
+                msg = json.loads(row["data"])
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+            role = msg.get("role", "")
+            if role not in ("user", "assistant"):
+                continue
+
+            content = msg.get("content", "")
+            if not content:
+                content = msg.get("text", "")
+
+            text = extract_text(content)
+            if text and not any(marker in text for marker in SKIP_MARKERS):
+                yield role, text
+
+        conn.close()
+    except (sqlite3.Error, OSError) as e:
+        print(f"Error reading OpenCode database: {e}", file=sys.stderr)
+
+
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Pretty-print a Claude Code or Codex session transcript")
+
+    parser = argparse.ArgumentParser(
+        description="Pretty-print a Claude Code, Codex, or OpenCode session transcript"
+    )
     parser.add_argument("path", help="Path to a session .jsonl file")
-    parser.add_argument("--pretty", action="store_true", help="Human-readable output instead of JSON")
+    parser.add_argument(
+        "--session-id",
+        dest="session_id",
+        help="Session ID (required for OpenCode sessions from database)",
+    )
+    parser.add_argument(
+        "--pretty", action="store_true", help="Human-readable output instead of JSON"
+    )
     args = parser.parse_args()
 
+    fmt = detect_format(args.path)
+
     if args.pretty:
-        for role, text in iter_messages(args.path):
+        for role, text in iter_messages(args.path, session_id=args.session_id):
             print(f"--- {role} ---")
             print(text[:500])
             print()
     else:
-        msgs = [{"role": role, "text": text} for role, text in iter_messages(args.path)]
+        msgs = [
+            {"role": role, "text": text}
+            for role, text in iter_messages(args.path, session_id=args.session_id)
+        ]
         print(json.dumps(msgs, indent=2))
 
 

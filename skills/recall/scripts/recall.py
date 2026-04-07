@@ -15,16 +15,18 @@ from pathlib import Path
 
 CLAUDE_DIR = Path.home() / ".claude"
 CODEX_DIR = Path.home() / ".codex"
+OPENCODE_DIR = Path.home() / ".local" / "share" / "opencode"
 DB_PATH = Path.home() / ".recall.db"
 CLAUDE_PROJECTS_DIR = CLAUDE_DIR / "projects"
 CODEX_SESSIONS_DIR = CODEX_DIR / "sessions"
+OPENCODE_DB_PATH = OPENCODE_DIR / "opencode.db"
 
 
 CJK_RE = re.compile(
-    r'[\u2E80-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF'
-    r'\U00020000-\U0002A6DF\U0002A700-\U0002B73F'
-    r'\U0002B740-\U0002B81F\U0002B820-\U0002CEAF'
-    r'\U0002CEB0-\U0002EBEF\U00030000-\U0003134F]'
+    r"[\u2E80-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF"
+    r"\U00020000-\U0002A6DF\U0002A700-\U0002B73F"
+    r"\U0002B740-\U0002B81F\U0002B820-\U0002CEAF"
+    r"\U0002CEB0-\U0002EBEF\U00030000-\U0003134F]"
 )
 
 
@@ -75,7 +77,6 @@ def migrate_schema(conn):
         conn.commit()
 
 
-
 def migrate_db_location():
     """Move recall.db from ~/.claude/ to ~/ if it exists at the old path."""
     old_path = CLAUDE_DIR / "recall.db"
@@ -89,7 +90,12 @@ def migrate_db_location():
 
 
 TEXT_BLOCK_TYPES = {"text", "input_text", "output_text"}
-CODEX_SKIP_MARKERS = ("<user_instructions>", "<environment_context>", "<permissions instructions>", "# AGENTS.md instructions")
+CODEX_SKIP_MARKERS = (
+    "<user_instructions>",
+    "<environment_context>",
+    "<permissions instructions>",
+    "# AGENTS.md instructions",
+)
 
 
 def extract_text(content):
@@ -126,6 +132,7 @@ def parse_iso_timestamp(ts_str):
 
 
 # — Claude Code session parser —————————————————————————————————————————————
+
 
 def parse_claude_session(path):
     """Parse a Claude Code JSONL session file, returning (metadata, messages)."""
@@ -209,6 +216,7 @@ def parse_claude_session(path):
 
 
 # — Codex session parser ———————————————————————————————————————————————————
+
 
 def parse_codex_session(path):
     """Parse a Codex JSONL session file, returning (metadata, messages).
@@ -332,7 +340,152 @@ def parse_codex_session(path):
     return metadata, messages
 
 
+# — OpenCode session parser ————————————————————————————————————————————————
+
+
+def parse_opencode_session(session_row, messages_data):
+    """Parse an OpenCode session from SQLite database, returning (metadata, messages).
+
+    OpenCode stores sessions in ~/.local/share/opencode/opencode.db
+    - session table: id, directory, title, time_created, time_updated, etc.
+    - message table: session_id, data (JSON with role, content, etc.)
+    """
+    session_id = session_row["id"]
+    project = session_row.get("directory", "")
+    slug = session_row.get("title", "") or session_row.get("slug", "")
+    timestamp = session_row.get("time_created", 0)
+
+    messages = []
+    for msg_data in messages_data:
+        try:
+            msg = json.loads(msg_data) if isinstance(msg_data, str) else msg_data
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+        role = msg.get("role", "")
+        if role not in ("user", "assistant"):
+            continue
+
+        # Extract text from content - OpenCode stores content differently
+        # Content can be a string or an array of blocks
+        content = msg.get("content", "")
+        if not content:
+            # Try alternative fields
+            content = msg.get("text", "")
+
+        text = extract_text(content)
+        if text:
+            messages.append((role, text))
+
+    metadata = {
+        "session_id": session_id,
+        "source": "opencode",
+        "file_path": str(OPENCODE_DB_PATH),
+        "project": project,
+        "slug": slug or session_id[:12],
+        "timestamp": timestamp,
+    }
+    return metadata, messages
+
+
+def index_opencode_sessions(conn, force=False):
+    """Index sessions from OpenCode SQLite database."""
+    if not OPENCODE_DB_PATH.exists():
+        return 0
+
+    # Get existing mtimes for opencode sessions
+    existing = {}
+    try:
+        for row in conn.execute(
+            "SELECT session_id, mtime FROM sessions WHERE source = 'opencode'"
+        ):
+            existing[row[0]] = row[1]
+    except sqlite3.OperationalError:
+        pass
+
+    indexed = 0
+
+    try:
+        # Connect to OpenCode database (read-only)
+        oc_conn = sqlite3.connect(f"file:{OPENCODE_DB_PATH}?mode=ro", uri=True)
+        oc_conn.row_factory = sqlite3.Row
+
+        # Get all sessions
+        sessions = oc_conn.execute("""
+            SELECT id, directory, slug, title, time_created, time_updated
+            FROM session
+            WHERE time_archived IS NULL
+            ORDER BY time_created DESC
+        """).fetchall()
+
+        for session_row in sessions:
+            session_id = session_row["id"]
+            mtime = session_row["time_updated"] / 1000  # Convert ms to seconds
+
+            if not force and session_id in existing and existing[session_id] == mtime:
+                continue
+
+            # Remove old data for this session if re-indexing
+            if session_id in existing:
+                conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+                conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+                conn.execute(
+                    "DELETE FROM messages_cjk WHERE session_id = ?", (session_id,)
+                )
+
+            # Get messages for this session
+            messages_rows = oc_conn.execute(
+                "SELECT data FROM message WHERE session_id = ? ORDER BY time_created",
+                (session_id,),
+            ).fetchall()
+
+            messages_data = [row["data"] for row in messages_rows]
+
+            result = parse_opencode_session(session_row, messages_data)
+            if result is None:
+                continue
+
+            metadata, messages = result
+
+            conn.execute(
+                "INSERT OR REPLACE INTO sessions (session_id, source, file_path, project, slug, timestamp, mtime) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    metadata["session_id"],
+                    metadata["source"],
+                    metadata["file_path"],
+                    metadata["project"],
+                    metadata["slug"],
+                    metadata["timestamp"],
+                    mtime,
+                ),
+            )
+
+            msg_rows = [(metadata["session_id"], role, text) for role, text in messages]
+            if msg_rows:
+                conn.executemany(
+                    "INSERT INTO messages (session_id, role, text) VALUES (?, ?, ?)",
+                    msg_rows,
+                )
+                cjk_rows = [r for r in msg_rows if has_cjk(r[2])]
+                if cjk_rows:
+                    conn.executemany(
+                        "INSERT INTO messages_cjk (session_id, role, text) VALUES (?, ?, ?)",
+                        cjk_rows,
+                    )
+
+            indexed += 1
+
+        oc_conn.close()
+
+    except (sqlite3.Error, OSError, PermissionError) as e:
+        print(f"Warning: OpenCode indexing error: {e}", file=sys.stderr)
+        return 0
+
+    return indexed
+
+
 # — Indexing ———————————————————————————————————————————————————————————————
+
 
 def index_sessions(conn, force=False):
     """Scan and index new/changed session files from all sources."""
@@ -371,6 +524,10 @@ def index_sessions(conn, force=False):
     conn.execute("INSERT INTO messages(messages, rank) VALUES('automerge', 0)")
     conn.execute("INSERT INTO messages_cjk(messages_cjk, rank) VALUES('automerge', 0)")
 
+    # Index OpenCode sessions from SQLite database
+    oc_indexed = index_opencode_sessions(conn, force=force)
+    indexed += oc_indexed
+
     for fpath, source in sources:
         try:
             mtime = os.path.getmtime(fpath)
@@ -400,8 +557,15 @@ def index_sessions(conn, force=False):
 
         conn.execute(
             "INSERT OR REPLACE INTO sessions (session_id, source, file_path, project, slug, timestamp, mtime) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (metadata["session_id"], metadata["source"], metadata["file_path"],
-             metadata["project"], metadata["slug"], metadata["timestamp"], mtime),
+            (
+                metadata["session_id"],
+                metadata["source"],
+                metadata["file_path"],
+                metadata["project"],
+                metadata["slug"],
+                metadata["timestamp"],
+                mtime,
+            ),
         )
 
         msg_rows = [(metadata["session_id"], role, text) for role, text in messages]
@@ -425,7 +589,9 @@ def index_sessions(conn, force=False):
         conn.execute("INSERT INTO messages(messages) VALUES('optimize')")
         conn.execute("INSERT INTO messages(messages, rank) VALUES('automerge', 4)")
         conn.execute("INSERT INTO messages_cjk(messages_cjk) VALUES('optimize')")
-        conn.execute("INSERT INTO messages_cjk(messages_cjk, rank) VALUES('automerge', 4)")
+        conn.execute(
+            "INSERT INTO messages_cjk(messages_cjk, rank) VALUES('automerge', 4)"
+        )
         conn.commit()
 
     # Get totals
@@ -436,6 +602,7 @@ def index_sessions(conn, force=False):
 
 
 # — Search —————————————————————————————————————————————————————————————————
+
 
 def sanitize_fts_query(query):
     """Sanitize a query for FTS5 MATCH.
@@ -456,13 +623,13 @@ def sanitize_fts_query(query):
             # Quote each part of hyphenated words individually
             # e.g. "ask-codex" -> '"ask" "codex"'
             segment = re.sub(
-                r'\b(\w+(?:-\w+)+)\b',
-                lambda m: ' '.join(f'"{w}"' for w in m.group().split('-')),
+                r"\b(\w+(?:-\w+)+)\b",
+                lambda m: " ".join(f'"{w}"' for w in m.group().split("-")),
                 segment,
             )
             parts.append(segment)
         in_quote = not in_quote
-    return ''.join(parts)
+    return "".join(parts)
 
 
 def search(conn, query, project=None, days=None, source=None, limit=10):
@@ -492,7 +659,9 @@ def search(conn, query, project=None, days=None, source=None, limit=10):
     if session_filter_conds:
         session_filter = (
             " AND session_id IN "
-            "(SELECT s2.session_id FROM sessions s2 WHERE " + " AND ".join(session_filter_conds) + ")"
+            "(SELECT s2.session_id FROM sessions s2 WHERE "
+            + " AND ".join(session_filter_conds)
+            + ")"
         )
 
     # Over-fetch candidates so recency re-ranking can surface recent results
@@ -568,7 +737,18 @@ def search(conn, query, project=None, days=None, source=None, limit=10):
         # Blend: 80% BM25, 20% recency. Recency term scales with typical BM25 magnitude.
         blended_rank = rank * (1 - 0.2 * recency_boost)
 
-        results.append((session_id, meta[0], meta[1], meta[2], meta[3], meta[4], excerpt, blended_rank))
+        results.append(
+            (
+                session_id,
+                meta[0],
+                meta[1],
+                meta[2],
+                meta[3],
+                meta[4],
+                excerpt,
+                blended_rank,
+            )
+        )
 
     # Re-sort by blended rank and trim to requested limit.
     results.sort(key=lambda r: r[7])
@@ -587,13 +767,28 @@ def format_timestamp(ts_ms):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Search past Claude Code and Codex sessions")
-    parser.add_argument("query", help="Search query (FTS5 syntax: quotes for phrases, AND/OR/NOT)")
-    parser.add_argument("--project", help="Filter to sessions from a specific project path (prefix match)")
+    parser = argparse.ArgumentParser(
+        description="Search past Claude Code, Codex, and OpenCode sessions"
+    )
+    parser.add_argument(
+        "query", help="Search query (FTS5 syntax: quotes for phrases, AND/OR/NOT)"
+    )
+    parser.add_argument(
+        "--project",
+        help="Filter to sessions from a specific project path (prefix match)",
+    )
     parser.add_argument("--days", type=int, help="Only sessions from last N days")
-    parser.add_argument("--source", choices=["claude", "codex"], help="Filter by source (claude or codex)")
-    parser.add_argument("--limit", type=int, default=10, help="Max results (default: 10)")
-    parser.add_argument("--reindex", action="store_true", help="Force full rebuild of the index")
+    parser.add_argument(
+        "--source",
+        choices=["claude", "codex", "opencode"],
+        help="Filter by source (claude, codex, or opencode)",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=10, help="Max results (default: 10)"
+    )
+    parser.add_argument(
+        "--reindex", action="store_true", help="Force full rebuild of the index"
+    )
 
     args = parser.parse_args()
 
@@ -611,23 +806,43 @@ def main():
 
     # Index
     t0 = time.time()
-    indexed, skipped, total_sessions, total_messages = index_sessions(conn, force=args.reindex)
+    indexed, skipped, total_sessions, total_messages = index_sessions(
+        conn, force=args.reindex
+    )
     index_time = time.time() - t0
 
     if indexed > 0:
         print(f"Indexed {indexed} sessions in {index_time:.1f}s", file=sys.stderr)
 
     # Search
-    results = search(conn, args.query, project=args.project, days=args.days, source=args.source, limit=args.limit)
+    results = search(
+        conn,
+        args.query,
+        project=args.project,
+        days=args.days,
+        source=args.source,
+        limit=args.limit,
+    )
 
     if not results:
         print("No matching sessions found.")
         conn.close()
         return
 
-    print(f"Found {len(results)} sessions (index: {total_sessions} sessions, {total_messages} messages):\n")
+    print(
+        f"Found {len(results)} sessions (index: {total_sessions} sessions, {total_messages} messages):\n"
+    )
 
-    for i, (session_id, source, file_path, project, slug, timestamp, excerpt, rank) in enumerate(results, 1):
+    for i, (
+        session_id,
+        source,
+        file_path,
+        project,
+        slug,
+        timestamp,
+        excerpt,
+        rank,
+    ) in enumerate(results, 1):
         date = format_timestamp(timestamp)
         src_tag = f"[{source}]" if source else ""
         proj_name = Path(project).name if project else "unknown"
