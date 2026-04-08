@@ -349,11 +349,15 @@ def parse_opencode_session(session_row, messages_data):
     OpenCode stores sessions in ~/.local/share/opencode/opencode.db
     - session table: id, directory, title, time_created, time_updated, etc.
     - message table: session_id, data (JSON with role, content, etc.)
+
+    OpenCode message format differs from Claude/Codex:
+    - User messages have summary.diffs with file changes (before/after content)
+    - Assistant messages have tool call metadata without direct text content
     """
     session_id = session_row["id"]
-    project = session_row.get("directory", "")
-    slug = session_row.get("title", "") or session_row.get("slug", "")
-    timestamp = session_row.get("time_created", 0)
+    project = session_row["directory"] if session_row["directory"] else ""
+    slug = session_row["title"] if session_row["title"] else session_row["slug"]
+    timestamp = session_row["time_created"] if session_row["time_created"] else 0
 
     messages = []
     for msg_data in messages_data:
@@ -366,14 +370,24 @@ def parse_opencode_session(session_row, messages_data):
         if role not in ("user", "assistant"):
             continue
 
-        # Extract text from content - OpenCode stores content differently
-        # Content can be a string or an array of blocks
-        content = msg.get("content", "")
-        if not content:
-            # Try alternative fields
-            content = msg.get("text", "")
+        text_parts = []
 
-        text = extract_text(content)
+        # For user messages, extract from summary.diffs
+        summary = msg.get("summary") or {}
+        if isinstance(summary, dict):
+            diffs = summary.get("diffs", [])
+        else:
+            diffs = []
+        for diff in diffs:
+            if isinstance(diff, dict):
+                # Get the "after" content which represents the new state
+                after_content = diff.get("after", "")
+                if after_content:
+                    text_parts.append(after_content)
+
+        # Join all parts
+        text = "\n".join(text_parts) if text_parts else ""
+
         if text:
             messages.append((role, text))
 

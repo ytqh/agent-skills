@@ -149,11 +149,22 @@ def iter_opencode_messages(session_id):
             if role not in ("user", "assistant"):
                 continue
 
-            content = msg.get("content", "")
-            if not content:
-                content = msg.get("text", "")
+            text_parts = []
 
-            text = extract_text(content)
+            # OpenCode stores content in summary.diffs
+            summary = msg.get("summary") or {}
+            if isinstance(summary, dict):
+                diffs = summary.get("diffs", [])
+            else:
+                diffs = []
+            for diff in diffs:
+                if isinstance(diff, dict):
+                    after_content = diff.get("after", "")
+                    if after_content:
+                        text_parts.append(after_content)
+
+            text = "\n".join(text_parts) if text_parts else ""
+
             if text and not any(marker in text for marker in SKIP_MARKERS):
                 yield role, text
 
