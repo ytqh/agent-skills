@@ -20,10 +20,16 @@ from typing import Any
 
 
 LOCAL_TZ = datetime.now().astimezone().tzinfo
+FIVE_HOUR_SECONDS = 5 * 60 * 60
+WEEKLY_SECONDS = 7 * 24 * 60 * 60
 
 
 def now_local_iso() -> str:
     return datetime.now().astimezone().isoformat()
+
+
+def now_local() -> datetime:
+    return datetime.now().astimezone()
 
 
 def format_reset(ts: Any) -> str | None:
@@ -41,10 +47,43 @@ def format_percent(value: Any) -> str | None:
     return f"{number:.1f}%"
 
 
+def format_rate(value: Any, unit: str) -> str | None:
+    if value is None:
+        return None
+    number = float(value)
+    if abs(number) >= 10 or number.is_integer():
+        return f"{number:.0f}%/{unit}"
+    if abs(number) >= 1:
+        return f"{number:.1f}%/{unit}"
+    return f"{number:.2f}%/{unit}"
+
+
 def remaining_percent(used: Any) -> float | None:
     if used is None:
         return None
     return max(0.0, 100.0 - float(used))
+
+
+def compact_duration(seconds: float) -> str:
+    total_seconds = max(0, int(round(seconds)))
+    days, rem = divmod(total_seconds, 24 * 60 * 60)
+    hours, rem = divmod(rem, 60 * 60)
+    minutes, secs = divmod(rem, 60)
+    parts: list[str] = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if secs or not parts:
+        parts.append(f"{secs}s")
+    return " ".join(parts[:2])
+
+
+def cache_history_path() -> Path:
+    base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+    return base / "code-agent-usage-check" / "history.jsonl"
 
 
 def safe_jsonl_loads(line: str) -> dict[str, Any] | None:
@@ -124,6 +163,145 @@ def build_window(source_used_key: str, data: dict[str, Any]) -> dict[str, Any]:
         "resets_at": resets_at,
         "resets_at_local": format_reset(resets_at),
     }
+
+
+def load_history(limit: int = 200) -> list[dict[str, Any]]:
+    path = cache_history_path()
+    if not path.exists():
+        return []
+    try:
+        lines = path.read_text(errors="replace").splitlines()
+    except OSError:
+        return []
+
+    history: list[dict[str, Any]] = []
+    for line in lines[-limit:]:
+        record = safe_jsonl_loads(line)
+        if record:
+            history.append(record)
+    return history
+
+
+def append_history(result: dict[str, Any]) -> None:
+    path = cache_history_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a") as handle:
+            handle.write(json.dumps(result, ensure_ascii=False))
+            handle.write("\n")
+    except OSError:
+        return
+
+
+def find_previous_window(
+    history: list[dict[str, Any]],
+    agent_key: str,
+    window_key: str,
+    resets_at: Any,
+) -> tuple[dict[str, Any], str] | None:
+    if resets_at is None:
+        return None
+    for entry in reversed(history):
+        agent = entry.get(agent_key)
+        if not isinstance(agent, dict) or agent.get("status") != "ok":
+            continue
+        window = agent.get(window_key)
+        if not isinstance(window, dict):
+            continue
+        if window.get("resets_at") != resets_at:
+            continue
+        checked_at = agent.get("checked_at_local") or entry.get("checked_at_local")
+        if isinstance(checked_at, str) and checked_at:
+            return window, checked_at
+    return None
+
+
+def build_projection(
+    current_window: dict[str, Any],
+    checked_at: datetime,
+    window_seconds: int,
+    previous_window: tuple[dict[str, Any], str] | None,
+) -> dict[str, Any] | None:
+    used = current_window.get("used_percent")
+    resets_at = current_window.get("resets_at")
+    if used is None or resets_at is None:
+        return None
+
+    current_used = float(used)
+    current_ts = checked_at.timestamp()
+    seconds_remaining = max(0.0, float(resets_at) - current_ts)
+    window_start_ts = float(resets_at) - float(window_seconds)
+    elapsed_since_start = max(0.0, current_ts - window_start_ts)
+
+    pace_source = "window_average"
+    basis_seconds = elapsed_since_start
+    rate_per_sec = 0.0
+
+    if previous_window is not None:
+        previous, previous_checked_at = previous_window
+        previous_used = previous.get("used_percent")
+        previous_checked_dt = parse_iso_datetime(previous_checked_at)
+        if previous_used is not None and previous_checked_dt is not None:
+            delta_used = current_used - float(previous_used)
+            delta_seconds = (checked_at - previous_checked_dt).total_seconds()
+            if delta_seconds >= 60 and delta_used > 0:
+                rate_per_sec = delta_used / delta_seconds
+                pace_source = "recent_history"
+                basis_seconds = delta_seconds
+
+    if pace_source == "window_average":
+        if elapsed_since_start > 0 and current_used > 0:
+            rate_per_sec = current_used / elapsed_since_start
+        else:
+            rate_per_sec = 0.0
+
+    projected_used = current_used + rate_per_sec * seconds_remaining
+    projected_remaining = max(0.0, 100.0 - projected_used)
+    will_reach_limit = rate_per_sec > 0 and projected_used >= 100.0
+    hit_at = None
+    if will_reach_limit and current_used < 100.0:
+        seconds_to_limit = (100.0 - current_used) / rate_per_sec
+        hit_at = int(current_ts + seconds_to_limit)
+
+    pace_per_hour = rate_per_sec * 3600.0
+    pace_per_day = rate_per_sec * 86400.0
+    return {
+        "pace_source": pace_source,
+        "pace_basis_seconds": int(round(basis_seconds)),
+        "pace_basis_display": compact_duration(basis_seconds),
+        "pace_percent_per_hour": pace_per_hour,
+        "pace_percent_per_hour_display": format_rate(pace_per_hour, "h"),
+        "pace_percent_per_day": pace_per_day,
+        "pace_percent_per_day_display": format_rate(pace_per_day, "day"),
+        "estimated_used_at_reset": projected_used,
+        "estimated_used_at_reset_display": format_percent(projected_used),
+        "estimated_remaining_at_reset": projected_remaining,
+        "estimated_remaining_at_reset_display": format_percent(projected_remaining),
+        "will_reach_limit": will_reach_limit,
+        "estimated_limit_hit_at": hit_at,
+        "estimated_limit_hit_at_local": format_reset(hit_at),
+    }
+
+
+def add_projections(result: dict[str, Any], history: list[dict[str, Any]]) -> dict[str, Any]:
+    checked_at = parse_iso_datetime(result.get("checked_at_local")) or now_local()
+    for agent_key in ("claude", "codex"):
+        agent = result.get(agent_key)
+        if not isinstance(agent, dict) or agent.get("status") != "ok":
+            continue
+        five_hour = agent.get("five_hour")
+        if isinstance(five_hour, dict):
+            five_previous = find_previous_window(history, agent_key, "five_hour", five_hour.get("resets_at"))
+            projection = build_projection(five_hour, checked_at, FIVE_HOUR_SECONDS, five_previous)
+            if projection is not None:
+                five_hour["projection"] = projection
+        weekly = agent.get("weekly")
+        if isinstance(weekly, dict):
+            weekly_previous = find_previous_window(history, agent_key, "weekly", weekly.get("resets_at"))
+            projection = build_projection(weekly, checked_at, WEEKLY_SECONDS, weekly_previous)
+            if projection is not None:
+                weekly["projection"] = projection
+    return result
 
 
 def check_claude() -> dict[str, Any]:
@@ -341,11 +519,15 @@ def check_codex() -> dict[str, Any]:
 
 
 def make_result() -> dict[str, Any]:
-    return {
+    history = load_history()
+    result = {
         "checked_at_local": now_local_iso(),
         "claude": check_claude(),
         "codex": check_codex(),
     }
+    result = add_projections(result, history)
+    append_history(result)
+    return result
 
 
 def print_human(result: dict[str, Any]) -> None:
@@ -364,8 +546,38 @@ def print_human(result: dict[str, Any]) -> None:
         weekly = item["weekly"]
         print(f"  5h remaining: {five['remaining_percent_display']}")
         print(f"  5h resets:    {five['resets_at_local']}")
+        if isinstance(five.get("projection"), dict):
+            projection = five["projection"]
+            print(
+                "  5h projected remaining at reset:"
+                f" {projection['estimated_remaining_at_reset_display']}"
+            )
+            print(
+                "  5h pace:"
+                f" {projection['pace_percent_per_hour_display']}"
+                f" ({projection['pace_source']}, basis {projection['pace_basis_display']})"
+            )
+            if projection["will_reach_limit"]:
+                print(f"  5h estimated limit hit: {projection['estimated_limit_hit_at_local']}")
+            else:
+                print("  5h estimated limit hit: no")
         print(f"  weekly remaining: {weekly['remaining_percent_display']}")
         print(f"  weekly resets:    {weekly['resets_at_local']}")
+        if isinstance(weekly.get("projection"), dict):
+            projection = weekly["projection"]
+            print(
+                "  weekly projected remaining at reset:"
+                f" {projection['estimated_remaining_at_reset_display']}"
+            )
+            print(
+                "  weekly pace:"
+                f" {projection['pace_percent_per_day_display']}"
+                f" ({projection['pace_source']}, basis {projection['pace_basis_display']})"
+            )
+            if projection["will_reach_limit"]:
+                print(f"  weekly estimated limit hit: {projection['estimated_limit_hit_at_local']}")
+            else:
+                print("  weekly estimated limit hit: no")
         if item.get("plan_type"):
             print(f"  plan type:    {item['plan_type']}")
         print(f"  source:       {item['source']}")

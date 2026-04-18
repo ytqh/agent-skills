@@ -17,6 +17,8 @@ Return both:
 - `5-hour remaining quota`
 - `weekly remaining quota`
 - `exact reset time` for each window
+- `pace-based forecast` for whether the current usage speed is likely to exhaust each window before reset
+- `estimated remaining percentage at reset` if the current usage speed continues
 
 This skill is for **current remaining quota**, not lifetime token usage, session cost, or historical trend analysis. If the user wants token totals, cost trends, or multi-day usage analysis, use `coding-agent-token-analysis` instead.
 
@@ -35,6 +37,7 @@ Use the bundled script:
 - `scripts/check_usage.py`
 
 It performs the live local check and returns structured JSON or a human-readable summary.
+The helper also keeps a small local history cache outside the repo so it can estimate recent usage pace. If there is not enough history yet, it falls back to a current-window average pace estimate.
 
 ## Workflow
 
@@ -52,8 +55,12 @@ python3 scripts/check_usage.py --json
    - check time
    - `Claude Code` 5-hour remaining percentage and reset time
    - `Claude Code` weekly remaining percentage and reset time
+   - `Claude Code` projected remaining at 5-hour reset and whether the 5-hour limit is likely to be hit
+   - `Claude Code` projected remaining at weekly reset and whether the weekly limit is likely to be hit
    - `Codex` 5-hour remaining percentage and reset time
    - `Codex` weekly remaining percentage and reset time
+   - `Codex` projected remaining at 5-hour reset and whether the 5-hour limit is likely to be hit
+   - `Codex` projected remaining at weekly reset and whether the weekly limit is likely to be hit
 
 ## Output Shape
 
@@ -63,13 +70,21 @@ Use this structure:
 - `Claude Code`:
   - `5h remaining`
   - `5h resets`
+  - `5h projected remaining at reset`
+  - `5h estimated limit hit`
   - `weekly remaining`
   - `weekly resets`
+  - `weekly projected remaining at reset`
+  - `weekly estimated limit hit`
 - `Codex`:
   - `5h remaining`
   - `5h resets`
+  - `5h projected remaining at reset`
+  - `5h estimated limit hit`
   - `weekly remaining`
   - `weekly resets`
+  - `weekly projected remaining at reset`
+  - `weekly estimated limit hit`
 - `Notes`: only if there is a caveat or partial failure
 
 ## Guardrails
@@ -77,6 +92,7 @@ Use this structure:
 - Do not confuse `remaining quota` with `tokens used in one session`.
 - Do not answer with only `used %`; convert it to `remaining %` too.
 - Always include absolute reset timestamps, not only relative phrases like `in 3 hours`.
+- For pace-based forecasts, prefer recent local history deltas when available; if not, say the estimate is based on current-window average pace.
 - If the helper had to rely on a local session snapshot for `Codex`, say so briefly and mention whether it was a fresh snapshot or a fallback snapshot.
 - If a CLI is missing or not logged in, say that clearly instead of guessing.
 - Keep the answer tight; this is an operational check, not a long report.
