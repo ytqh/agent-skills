@@ -71,15 +71,22 @@ Important:
 - Trust the Windows-side `Get-NetTCPConnection` result from the script
 - Do not use a WSL `127.0.0.1:9420` probe as the source of truth
 - **`ensure_port_9420` reporting `ready` does NOT guarantee the WebSocket is connectable.** A stale DevTools process can hold port 9420 in ESTABLISHED state without accepting new connections.
+- **`ensure_port_9420` may report `PORT_NOT_READY` even when the listener comes up a few seconds later.** Observed on 2026-04-18: the first run after a kill reported failure, but a raw WS probe moments later succeeded. Always re-probe with the raw WebSocket test before concluding a real failure.
 
 If the first `automator.connect` hangs or times out after `ensure_port_9420` succeeds:
 
 1. Verify with a raw WebSocket test (connect to `ws://127.0.0.1:9420` with bare `ws` module, 10s timeout)
-2. If the raw WS test fails, kill all processes holding port 9420 on the Windows side
-3. Re-run `ensure_port_9420.py` to start a fresh `cli auto` background job
-4. Verify again with the raw WS test before running automator scripts
+2. If the raw WS test fails, **kill ALL `wechatdevtools` processes on Windows — not just the one holding port 9420.** A stale DevTools GUI instance that does not show up in `Get-NetTCPConnection -LocalPort 9420` can still block a fresh `cli auto` from binding. Killing only the 9420-holding process leaves orphaned GUI instances that block re-launch. Verified one-liner (run from Mac Air):
 
-This kill-restart cycle is the **only reliable recovery** when connections hang.
+    ```bash
+    ssh -o BatchMode=yes dev-server-win 'powershell -Command "Get-Process -Name wechatdevtools -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 3; Get-Process -Name wechatdevtools -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"'
+    # Expect output: 0
+    ```
+
+3. Re-run `ensure_port_9420.py` to start a fresh `cli auto` background job
+4. Verify again with the raw WS test before running automator scripts (do not trust a `PORT_NOT_READY` report alone — re-probe first)
+
+This nuke-all-then-restart cycle is the **only reliable recovery** when connections hang. Verified during the P0.5 miniprogram UI smoke test on 2026-04-18 after multiple false starts where killing only the 9420-holding process was insufficient.
 
 ### 3. Run a focused automator script
 
