@@ -320,10 +320,7 @@ def check_claude() -> dict[str, Any]:
     except OSError:
         pass
 
-    command = (
-        "python3 -c "
-        f"'import pathlib,sys; pathlib.Path(r\"{dump_path}\").write_text(sys.stdin.read()); print()'"
-    )
+    command = f"cat > {shlex.quote(str(dump_path))}"
     settings_path.write_text(
         json.dumps({"statusLine": {"type": "command", "command": command, "refreshInterval": 1}})
     )
