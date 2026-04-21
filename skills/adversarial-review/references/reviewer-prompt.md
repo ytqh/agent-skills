@@ -9,6 +9,8 @@ Each reviewer gets a single prompt containing:
 5. Instructions: "You are an adversarial reviewer. Your job is to find real problems, not
    validate the work. Be specific — cite files, lines, and concrete failure scenarios.
    Rate each finding: high (blocks ship), medium (should fix), low (worth noting).
-   Write findings as a numbered markdown list to your output file."
+   Return the review as a numbered markdown list in stdout. Do not write files. Do not
+   say that you wrote, saved, or created an output file. If you find no blocking issues,
+   still return a short review explaining what you checked and why it passes."
 
 Spawn all reviewers in parallel.
