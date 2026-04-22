@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Check current remaining Claude Code and Codex quota on the local machine."""
+"""Check current remaining Claude Code and Codex quota across one or more hosts."""
 
 from __future__ import annotations
 
 import argparse
+import base64
+import concurrent.futures
 import json
 import os
 import pty
 import select
 import shlex
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -22,6 +25,11 @@ from typing import Any
 LOCAL_TZ = datetime.now().astimezone().tzinfo
 FIVE_HOUR_SECONDS = 5 * 60 * 60
 WEEKLY_SECONDS = 7 * 24 * 60 * 60
+DEFAULT_HOSTS = "local,dev-server"
+DEFAULT_SSH_TIMEOUT = 90
+REMOTE_SCRIPT_PATH = "~/.agents/skills/code-agent-usage-check/scripts/check_usage.py"
+CLAUDE_STATUSLINE_TIMEOUT_SECONDS = 35
+CODEX_PTY_TIMEOUT_SECONDS = 25
 
 
 def now_local_iso() -> str:
@@ -96,7 +104,11 @@ def safe_jsonl_loads(line: str) -> dict[str, Any] | None:
     return None
 
 
-def spawn_pty(argv: list[str], env: dict[str, str]) -> tuple[subprocess.Popen[bytes], int]:
+def spawn_pty(
+    argv: list[str],
+    env: dict[str, str],
+    cwd: str | None = None,
+) -> tuple[subprocess.Popen[bytes], int]:
     master_fd, slave_fd = pty.openpty()
     proc = subprocess.Popen(
         argv,
@@ -104,10 +116,38 @@ def spawn_pty(argv: list[str], env: dict[str, str]) -> tuple[subprocess.Popen[by
         stdout=slave_fd,
         stderr=slave_fd,
         env=env,
+        cwd=cwd,
         close_fds=True,
     )
     os.close(slave_fd)
     return proc, master_fd
+
+
+def trusted_claude_cwd() -> str | None:
+    """Pick an already-trusted project directory so Claude skips its first-run
+    trust dialog (which otherwise hangs the statusLine capture on a fresh host
+    where the invocation directory was never accepted)."""
+    for config_path in (Path.home() / ".claude.json", Path.home() / ".claude" / ".claude.json"):
+        try:
+            data = json.loads(config_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+        projects = data.get("projects")
+        if not isinstance(projects, dict):
+            continue
+        # Prefer the user's home dir if it's trusted (cheapest CD target).
+        home = str(Path.home())
+        if isinstance(projects.get(home), dict) and projects[home].get("hasTrustDialogAccepted") is True:
+            return home
+        for path, value in projects.items():
+            if not isinstance(value, dict) or value.get("hasTrustDialogAccepted") is not True:
+                continue
+            try:
+                if Path(path).is_dir():
+                    return path
+            except OSError:
+                continue
+    return None
 
 
 def drain_fd(fd: int) -> bytes:
@@ -304,6 +344,125 @@ def add_projections(result: dict[str, Any], history: list[dict[str, Any]]) -> di
     return result
 
 
+def read_device_id() -> str | None:
+    candidates = [
+        Path.home() / "Projects" / "personal-assistant" / ".device-id",
+        Path("/Users/aki/Projects/personal-assistant/.device-id"),
+    ]
+    for path in candidates:
+        try:
+            text = path.read_text().strip()
+        except OSError:
+            continue
+        if text:
+            return text
+    return None
+
+
+def hostname_label() -> str:
+    device_id = read_device_id()
+    if device_id:
+        return device_id
+    try:
+        return socket.gethostname()
+    except OSError:
+        return "unknown-host"
+
+
+def claude_account() -> dict[str, Any] | None:
+    path = Path.home() / ".claude.json"
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+    account = data.get("oauthAccount")
+    if not isinstance(account, dict):
+        return None
+
+    def _unwrap(value: Any) -> Any:
+        if isinstance(value, str):
+            stripped = value.strip()
+            if len(stripped) >= 2 and stripped[0] == stripped[-1] and stripped[0] in "'\"":
+                inner = stripped[1:-1]
+                if inner == "None":
+                    return None
+                return inner
+            if stripped == "None":
+                return None
+            if stripped in ("True", "False"):
+                return stripped == "True"
+        return value
+
+    email = _unwrap(account.get("emailAddress"))
+    display_name = _unwrap(account.get("displayName"))
+    organization = _unwrap(account.get("organizationName"))
+    billing = _unwrap(account.get("billingType"))
+    account_uuid = _unwrap(account.get("accountUuid"))
+    if not any([email, display_name, organization, billing, account_uuid]):
+        return None
+    return {
+        "email": email,
+        "display_name": display_name,
+        "organization": organization,
+        "billing_type": billing,
+        "account_uuid": account_uuid,
+        "source": str(path),
+    }
+
+
+def _decode_jwt_payload(token: str) -> dict[str, Any] | None:
+    parts = token.split(".")
+    if len(parts) < 2:
+        return None
+    segment = parts[1]
+    padding = "=" * (-len(segment) % 4)
+    try:
+        raw = base64.urlsafe_b64decode(segment + padding)
+        return json.loads(raw)
+    except (ValueError, json.JSONDecodeError):
+        return None
+
+
+def codex_account() -> dict[str, Any] | None:
+    path = Path.home() / ".codex" / "auth.json"
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    account: dict[str, Any] = {"source": str(path)}
+    if data.get("OPENAI_API_KEY"):
+        account["auth_mode"] = "api_key"
+
+    token = None
+    tokens = data.get("tokens")
+    if isinstance(tokens, dict):
+        token = tokens.get("id_token")
+    if not token:
+        token = data.get("id_token")
+    if not token:
+        return account if len(account) > 1 else None
+
+    payload = _decode_jwt_payload(token)
+    if not payload:
+        return account if len(account) > 1 else None
+
+    account["auth_mode"] = account.get("auth_mode", "chatgpt_oauth")
+    account["email"] = payload.get("email")
+    account["sub"] = payload.get("sub")
+    openai_auth = payload.get("https://api.openai.com/auth") or {}
+    if isinstance(openai_auth, dict):
+        account["chatgpt_plan_type"] = openai_auth.get("chatgpt_plan_type")
+        account["chatgpt_user_id"] = openai_auth.get("chatgpt_user_id")
+        orgs = openai_auth.get("organizations")
+        if isinstance(orgs, list) and orgs:
+            default_org = next((o for o in orgs if isinstance(o, dict) and o.get("is_default")), orgs[0])
+            if isinstance(default_org, dict):
+                account["organization"] = default_org.get("title")
+                account["organization_id"] = default_org.get("id")
+    return account
+
+
 def check_claude() -> dict[str, Any]:
     claude_path = shutil.which("claude")
     if not claude_path:
@@ -327,13 +486,14 @@ def check_claude() -> dict[str, Any]:
     env = os.environ.copy()
     env.setdefault("TERM", "xterm-256color")
 
-    shell = os.environ.get("SHELL", "/bin/zsh")
+    shell = os.environ.get("SHELL") or shutil.which("bash") or "/bin/bash"
     command_line = f"{shlex.quote(claude_path)} --settings {shlex.quote(str(settings_path))}"
-    proc, fd = spawn_pty([shell, "-lc", command_line], env)
+    cwd = trusted_claude_cwd()
+    proc, fd = spawn_pty([shell, "-lc", command_line], env, cwd=cwd)
     payload: dict[str, Any] | None = None
     started_at = time.time()
     try:
-        while time.time() - started_at < 20:
+        while time.time() - started_at < CLAUDE_STATUSLINE_TIMEOUT_SECONDS:
             drain_fd(fd)
             if dump_path.exists():
                 text = dump_path.read_text(errors="replace")
@@ -369,6 +529,7 @@ def check_claude() -> dict[str, Any]:
         "status": "ok",
         "checked_at_local": now_local_iso(),
         "source": "Claude Code statusLine JSON",
+        "account": claude_account(),
         "five_hour": build_window("used_percentage", five_hour),
         "weekly": build_window("used_percentage", seven_day),
     }
@@ -461,7 +622,7 @@ def check_codex() -> dict[str, Any]:
     snapshot_path: Path | None = None
 
     try:
-        while time.time() - started_at < 25:
+        while time.time() - started_at < CODEX_PTY_TIMEOUT_SECONDS:
             drain_fd(fd)
             if sessions_dir.exists():
                 candidates = sorted(sessions_dir.glob("rollout-*.jsonl"), key=lambda path: path.stat().st_mtime, reverse=True)
@@ -510,87 +671,327 @@ def check_codex() -> dict[str, Any]:
         "freshness": freshness,
         "source": source,
         "plan_type": rate_limits.get("plan_type"),
+        "account": codex_account(),
         "five_hour": build_window("used_percent", primary),
         "weekly": build_window("used_percent", secondary),
     }
 
 
-def make_result() -> dict[str, Any]:
+def make_single_host_result() -> dict[str, Any]:
     history = load_history()
+    # Run the two agent checks in parallel so single-host wall time is bounded
+    # by max(claude, codex) rather than their sum — keeps us inside the SSH
+    # timeout when this is invoked remotely.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        futures = {
+            "claude": pool.submit(check_claude),
+            "codex": pool.submit(check_codex),
+        }
+        claude_result = futures["claude"].result()
+        codex_result = futures["codex"].result()
     result = {
+        "status": "ok",
+        "hostname": hostname_label(),
         "checked_at_local": now_local_iso(),
-        "claude": check_claude(),
-        "codex": check_codex(),
+        "claude": claude_result,
+        "codex": codex_result,
     }
     result = add_projections(result, history)
     append_history(result)
     return result
 
 
+def run_remote_host(host: str, ssh_timeout: int) -> dict[str, Any]:
+    argv = [
+        "ssh",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=10",
+        "-o", "StrictHostKeyChecking=accept-new",
+        host,
+        # Use bash -lc so PATH/env are loaded and ~ expands. Force a TTY-less
+        # Python run that echoes only the JSON to stdout; diagnostics go to stderr.
+        "bash", "-lc",
+        shlex.quote(f"python3 {REMOTE_SCRIPT_PATH} --json --hosts local"),
+    ]
+    started = time.time()
+    try:
+        completed = subprocess.run(
+            argv,
+            capture_output=True,
+            timeout=ssh_timeout,
+            text=True,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "status": "error",
+            "hostname": host,
+            "reason": f"ssh to {host} timed out after {ssh_timeout}s",
+            "ssh_target": host,
+        }
+    except FileNotFoundError:
+        return {
+            "status": "error",
+            "hostname": host,
+            "reason": "ssh binary not found on PATH",
+            "ssh_target": host,
+        }
+
+    elapsed = time.time() - started
+    stdout = completed.stdout or ""
+    stderr = (completed.stderr or "").strip()
+    if completed.returncode != 0:
+        reason = stderr.splitlines()[-1] if stderr else f"ssh exited with code {completed.returncode}"
+        return {
+            "status": "error",
+            "hostname": host,
+            "reason": f"ssh {host} failed: {reason}",
+            "ssh_target": host,
+            "ssh_stderr_tail": stderr[-400:] if stderr else None,
+            "ssh_elapsed_seconds": round(elapsed, 2),
+        }
+
+    # Remote stdout may include warnings (e.g. the post-quantum SSH warning) before
+    # the JSON object. Parse by locating the first '{' and the last matching '}'.
+    start = stdout.find("{")
+    end = stdout.rfind("}")
+    if start < 0 or end <= start:
+        return {
+            "status": "error",
+            "hostname": host,
+            "reason": "remote output did not contain JSON",
+            "ssh_target": host,
+            "ssh_stdout_tail": stdout[-400:],
+            "ssh_stderr_tail": stderr[-400:] if stderr else None,
+        }
+    try:
+        parsed = json.loads(stdout[start : end + 1])
+    except json.JSONDecodeError as exc:
+        return {
+            "status": "error",
+            "hostname": host,
+            "reason": f"could not parse remote JSON: {exc}",
+            "ssh_target": host,
+            "ssh_stdout_tail": stdout[-400:],
+        }
+
+    # The remote ran with `--hosts local` and therefore returned the wrapped
+    # multi-host shape `{checked_at_local, hosts: {<self_label>: <inner>}}`.
+    # Unwrap the single inner single-host dict so the caller can merge it
+    # alongside the local result uniformly.
+    if isinstance(parsed, dict) and isinstance(parsed.get("hosts"), dict):
+        remote_hosts = parsed["hosts"]
+        if len(remote_hosts) == 1:
+            inner = next(iter(remote_hosts.values()))
+            if isinstance(inner, dict):
+                parsed = inner
+    # Force the label to the SSH target regardless of what the remote reported,
+    # so the operator sees the name they asked for (e.g. `dev-server`) rather
+    # than the remote's `socket.gethostname()` fallback.
+    parsed["ssh_target"] = host
+    parsed["ssh_elapsed_seconds"] = round(elapsed, 2)
+    reported = parsed.get("hostname")
+    if reported and reported != host:
+        parsed["remote_reported_hostname"] = reported
+    parsed["hostname"] = host
+    return parsed
+
+
+def run_host_token(token: str, ssh_timeout: int) -> dict[str, Any]:
+    if token == "local" or token == "localhost":
+        return make_single_host_result()
+    return run_remote_host(token, ssh_timeout)
+
+
+def orchestrate(tokens: list[str], ssh_timeout: int) -> dict[str, Any]:
+    results: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(tokens))) as pool:
+        future_map = {pool.submit(run_host_token, token, ssh_timeout): token for token in tokens}
+        for future in concurrent.futures.as_completed(future_map):
+            token = future_map[future]
+            try:
+                item = future.result()
+            except Exception as exc:  # pragma: no cover - defensive
+                item = {
+                    "status": "error",
+                    "hostname": token,
+                    "reason": f"unexpected error running host {token}: {exc}",
+                }
+            label = item.get("hostname") or token
+            # Guard against duplicate labels (two hosts reporting the same device-id).
+            if label in results:
+                label = f"{label} ({token})"
+                item["hostname_conflict"] = True
+            results[label] = item
+            order.append(label)
+
+    # Preserve the CLI-supplied order in the output dict.
+    ordered: dict[str, dict[str, Any]] = {}
+    cli_order: list[str] = []
+    for token in tokens:
+        match = None
+        for label, item in results.items():
+            if label in ordered:
+                continue
+            candidate_host = item.get("hostname")
+            candidate_ssh = item.get("ssh_target")
+            if token == "local" and candidate_ssh is None and item.get("status") != "error":
+                match = label
+                break
+            if candidate_ssh == token:
+                match = label
+                break
+            if candidate_host == token:
+                match = label
+                break
+        if match is None:
+            for label in results:
+                if label not in ordered:
+                    match = label
+                    break
+        if match is not None and match not in ordered:
+            ordered[match] = results[match]
+            cli_order.append(match)
+    for label, item in results.items():
+        if label not in ordered:
+            ordered[label] = item
+            cli_order.append(label)
+
+    return {
+        "checked_at_local": now_local_iso(),
+        "hosts": ordered,
+    }
+
+
+def parse_hosts(value: str) -> list[str]:
+    tokens = [part.strip() for part in value.split(",") if part.strip()]
+    # Deduplicate while preserving order.
+    seen: set[str] = set()
+    unique: list[str] = []
+    for token in tokens:
+        key = "local" if token in ("local", "localhost") else token
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(key)
+    return unique or ["local"]
+
+
+def print_agent_block(indent: str, item: dict[str, Any]) -> None:
+    five = item.get("five_hour") or {}
+    weekly = item.get("weekly") or {}
+    print(f"{indent}5h remaining: {five.get('remaining_percent_display')}")
+    print(f"{indent}5h resets:    {five.get('resets_at_local')}")
+    if isinstance(five.get("projection"), dict):
+        projection = five["projection"]
+        print(
+            f"{indent}5h projected remaining at reset:"
+            f" {projection['estimated_remaining_at_reset_display']}"
+        )
+        print(
+            f"{indent}5h pace:"
+            f" {projection['pace_percent_per_hour_display']}"
+            f" ({projection['pace_source']}, basis {projection['pace_basis_display']})"
+        )
+        if projection["will_reach_limit"]:
+            print(f"{indent}5h estimated limit hit: {projection['estimated_limit_hit_at_local']}")
+        else:
+            print(f"{indent}5h estimated limit hit: no")
+    print(f"{indent}weekly remaining: {weekly.get('remaining_percent_display')}")
+    print(f"{indent}weekly resets:    {weekly.get('resets_at_local')}")
+    if isinstance(weekly.get("projection"), dict):
+        projection = weekly["projection"]
+        print(
+            f"{indent}weekly projected remaining at reset:"
+            f" {projection['estimated_remaining_at_reset_display']}"
+        )
+        print(
+            f"{indent}weekly pace:"
+            f" {projection['pace_percent_per_day_display']}"
+            f" ({projection['pace_source']}, basis {projection['pace_basis_display']})"
+        )
+        if projection["will_reach_limit"]:
+            print(f"{indent}weekly estimated limit hit: {projection['estimated_limit_hit_at_local']}")
+        else:
+            print(f"{indent}weekly estimated limit hit: no")
+    if item.get("plan_type"):
+        print(f"{indent}plan type:    {item['plan_type']}")
+    account = item.get("account")
+    if isinstance(account, dict):
+        email = account.get("email")
+        display = account.get("display_name")
+        org = account.get("organization")
+        plan = account.get("chatgpt_plan_type")
+        billing = account.get("billing_type")
+        descriptors: list[str] = []
+        if email:
+            descriptors.append(email)
+        if display and display != email:
+            descriptors.append(f"“{display}”")
+        if org:
+            descriptors.append(f"org={org}")
+        if plan:
+            descriptors.append(f"plan={plan}")
+        if billing:
+            descriptors.append(f"billing={billing}")
+        if descriptors:
+            print(f"{indent}account:      {' | '.join(descriptors)}")
+    if item.get("source"):
+        print(f"{indent}source:       {item['source']}")
+    if item.get("snapshot_age_seconds") is not None:
+        print(f"{indent}snapshot age: {item['snapshot_age_seconds']}s")
+
+
 def print_human(result: dict[str, Any]) -> None:
     print(f"Checked at: {result['checked_at_local']}")
-    print()
-    for label, key in (("Claude Code", "claude"), ("Codex", "codex")):
-        item = result[key]
-        print(f"{label}:")
-        if item["status"] != "ok":
-            print(f"  status: {item['status']}")
-            print(f"  reason: {item.get('reason', 'unknown error')}")
-            print()
-            continue
-
-        five = item["five_hour"]
-        weekly = item["weekly"]
-        print(f"  5h remaining: {five['remaining_percent_display']}")
-        print(f"  5h resets:    {five['resets_at_local']}")
-        if isinstance(five.get("projection"), dict):
-            projection = five["projection"]
-            print(
-                "  5h projected remaining at reset:"
-                f" {projection['estimated_remaining_at_reset_display']}"
-            )
-            print(
-                "  5h pace:"
-                f" {projection['pace_percent_per_hour_display']}"
-                f" ({projection['pace_source']}, basis {projection['pace_basis_display']})"
-            )
-            if projection["will_reach_limit"]:
-                print(f"  5h estimated limit hit: {projection['estimated_limit_hit_at_local']}")
-            else:
-                print("  5h estimated limit hit: no")
-        print(f"  weekly remaining: {weekly['remaining_percent_display']}")
-        print(f"  weekly resets:    {weekly['resets_at_local']}")
-        if isinstance(weekly.get("projection"), dict):
-            projection = weekly["projection"]
-            print(
-                "  weekly projected remaining at reset:"
-                f" {projection['estimated_remaining_at_reset_display']}"
-            )
-            print(
-                "  weekly pace:"
-                f" {projection['pace_percent_per_day_display']}"
-                f" ({projection['pace_source']}, basis {projection['pace_basis_display']})"
-            )
-            if projection["will_reach_limit"]:
-                print(f"  weekly estimated limit hit: {projection['estimated_limit_hit_at_local']}")
-            else:
-                print("  weekly estimated limit hit: no")
-        if item.get("plan_type"):
-            print(f"  plan type:    {item['plan_type']}")
-        print(f"  source:       {item['source']}")
-        if item.get("snapshot_age_seconds") is not None:
-            print(f"  snapshot age: {item['snapshot_age_seconds']}s")
-        if item.get("snapshot_path"):
-            print(f"  snapshot:     {item['snapshot_path']}")
+    hosts = result.get("hosts") or {}
+    for host_label, host_result in hosts.items():
         print()
+        print(f"Host: {host_label}")
+        if host_result.get("status") != "ok":
+            print(f"  status: {host_result.get('status')}")
+            print(f"  reason: {host_result.get('reason', 'unknown error')}")
+            if host_result.get("ssh_stderr_tail"):
+                print(f"  ssh stderr tail: {host_result['ssh_stderr_tail']}")
+            continue
+        if host_result.get("ssh_target"):
+            elapsed = host_result.get("ssh_elapsed_seconds")
+            suffix = f" ({elapsed}s)" if elapsed is not None else ""
+            print(f"  via ssh: {host_result['ssh_target']}{suffix}")
+        for label, key in (("Claude Code", "claude"), ("Codex", "codex")):
+            item = host_result.get(key) or {}
+            print(f"  {label}:")
+            if item.get("status") != "ok":
+                print(f"    status: {item.get('status')}")
+                print(f"    reason: {item.get('reason', 'unknown error')}")
+                continue
+            print_agent_block("    ", item)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check current Claude Code and Codex remaining quota.")
+    parser = argparse.ArgumentParser(description="Check current Claude Code and Codex remaining quota across hosts.")
+    parser.add_argument(
+        "--hosts",
+        default=DEFAULT_HOSTS,
+        help=f"Comma-separated host list. 'local' means this machine; other tokens are SSH targets. Default: {DEFAULT_HOSTS}",
+    )
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Shortcut for --hosts local (ignores --hosts if both are given).",
+    )
+    parser.add_argument(
+        "--ssh-timeout",
+        type=int,
+        default=DEFAULT_SSH_TIMEOUT,
+        help=f"Per-host SSH timeout in seconds. Default: {DEFAULT_SSH_TIMEOUT}",
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON")
     args = parser.parse_args()
 
-    result = make_result()
+    tokens = ["local"] if args.local else parse_hosts(args.hosts)
+    # Single host, local only: return the inner shape wrapped in {hosts: {...}}.
+    result = orchestrate(tokens, args.ssh_timeout)
     if args.json:
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
         sys.stdout.write("\n")
