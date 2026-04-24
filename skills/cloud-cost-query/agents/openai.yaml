@@ -1,4 +1,0 @@
-interface:
-  display_name: "Cloud Cost Query"
-  short_description: "Analyze Aliyun and Tencent cloud billing"
-  default_prompt: "Use $cloud-cost-query to analyze recent Aliyun and Tencent Cloud spending."
